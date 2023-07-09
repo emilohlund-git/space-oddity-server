@@ -1,8 +1,7 @@
 import app from './application/app';
+import { logger } from './configurations/logger.config';
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
-  /* eslint-disable no-console */
-  console.log(`Listening: http://localhost:${port}`);
-  /* eslint-enable no-console */
+  logger.info(`⚡ Listening: http://localhost:${port}`);
 });

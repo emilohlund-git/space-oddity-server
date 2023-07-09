@@ -77,11 +77,38 @@ describe('SocketHandler', () => {
       createLobbyCommand.execute();
     });
 
+    test('should throw UserNotFoundException when user is not found', () => {
+      const mockSocket: any = {
+        id: 'mock-socket-id',
+      };
+
+      expect(() => {
+        const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, mockSocket, {
+          lobbyId: randomUUID(),
+        });
+
+        createLobbyCommand.execute();
+      }).toThrow(UserNotFoundException);
+    });
+
+    test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
+      expect(() => {
+        const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, serverSocket, {
+          lobbyId: 'non-uuid-id',
+        });
+
+        createLobbyCommand.execute();
+      }).toThrow(InvalidPayloadException);
+      done();
+    });
+
     test('should throw LobbyExistsException when trying to create an existing lobby', (done) => {
       const lobbies = lobbyService.findAll();
 
       expect(() => {
-        const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, serverSocket, lobbies[0].id);
+        const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, serverSocket, {
+          lobbyId: lobbies[0].id,
+        });
 
         createLobbyCommand.execute();
       }).toThrow(LobbyExistsException);
@@ -174,6 +201,42 @@ describe('SocketHandler', () => {
 
       leaveLobbyCommand.execute();
     });
+
+    test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
+      expect(() => {
+        const leaveLobbyCommand = new LeaveLobbyCommand(userService, lobbyService, serverSocket, {
+          lobbyId: 'non-uuid-id',
+        });
+
+        leaveLobbyCommand.execute();
+      }).toThrow(InvalidPayloadException);
+      done();
+    });
+
+    test('should throw UserNotFoundException when user is not found', () => {
+      const mockSocket: any = {
+        id: 'mock-socket-id',
+      };
+
+      expect(() => {
+        const leaveLobbyCommand = new LeaveLobbyCommand(userService, lobbyService, mockSocket, {
+          lobbyId: randomUUID(),
+        });
+
+        leaveLobbyCommand.execute();
+      }).toThrow(UserNotFoundException);
+    });
+
+    test('should throw LobbyNotFoundException when attempting to leave non-existing lobby', (done) => {
+      expect(() => {
+        const leaveLobbyCommand = new LeaveLobbyCommand(userService, lobbyService, serverSocket, {
+          lobbyId: randomUUID(),
+        });
+
+        leaveLobbyCommand.execute();
+      }).toThrow(LobbyNotFoundException);
+      done();
+    });
   });
 
   describe('UserConnectCommand', () => {
@@ -203,6 +266,17 @@ describe('SocketHandler', () => {
       }).toThrow(FailedUserConnectionException);
       done();
     });
+
+    test('should throw InvalidPayloadException when passing an empty username string', (done) => {
+      expect(() => {
+        const userConnectCommand = new UserConnectCommand(userService, serverSocket, {
+          username: '',
+        });
+
+        userConnectCommand.execute();
+      }).toThrow(InvalidPayloadException);
+      done();
+    });
   });
 
   describe('SendMessageCommand', () => {
@@ -223,6 +297,19 @@ describe('SocketHandler', () => {
       });
 
       sendMessageCommand.execute();
+    });
+
+    test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
+      expect(() => {
+        const sendMessageCommand = new SendMessageCommand(serverSocket, {
+          lobbyId: 'non-uuid-id',
+          message: '1234',
+          userId: 'non-uuid-id',
+        });
+
+        sendMessageCommand.execute();
+      }).toThrow(InvalidPayloadException);
+      done();
     });
   });
 
@@ -248,14 +335,29 @@ describe('SocketHandler', () => {
     });
   });
 
-  test('should handle connection and register event listeners', (done) => {
-    const mockOn = jest.spyOn(io, 'on');
+  describe('handleConnection', () => {
+    test('should handle connection and register event listeners', (done) => {
+      const mockOn = jest.spyOn(io, 'on');
+      const mockSocketOn = jest.spyOn(serverSocket, 'on');
 
-    const socketHandler = new SocketHandler(io, userService, lobbyService);
-    socketHandler.handleConnection();
+      const socketHandler = new SocketHandler(io, userService, lobbyService);
+      socketHandler.handleConnection();
 
-    expect(mockOn).toHaveBeenCalledWith('connection', expect.any(Function));
+      expect(mockOn).toHaveBeenCalledWith('connection', expect.any(Function));
 
-    done();
+      // Simulate a 'connection' event by calling the registered 'connection' event handler manually
+      const connectionHandler = mockOn.mock.calls[0][1];
+      connectionHandler(serverSocket);
+
+      // Expect the event listeners to be registered based on the commands
+      expect(mockSocketOn).toHaveBeenCalledWith('UserConnect', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('CreateLobby', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('JoinLobby', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('LeaveLobby', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('SendMessage', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('UserReady', expect.any(Function));
+
+      done();
+    });
   });
 });

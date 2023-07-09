@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { Server, Socket } from 'socket.io';
-import CreateLobbyCommand from '../application/commands/create-lobby.command';
+import CreateLobbyCommand, { CreateLobbyPayload } from '../application/commands/create-lobby.command';
 import JoinLobbyCommand, { JoinLobbyPayload } from '../application/commands/join-lobby.command';
 import LeaveLobbyCommand, { LeaveLobbyPayload } from '../application/commands/leave-lobby.command';
 import SendMessageCommand, { SendMessagePayload } from '../application/commands/send-message.command';
@@ -35,8 +35,8 @@ class SocketHandler {
     this.commands = {
       UserConnect: (socket, payload: UserConnectPayload) =>
         new UserConnectCommand(this.userService, socket, payload),
-      CreateLobby: (socket) =>
-        new CreateLobbyCommand(this.userService, this.lobbyService, socket),
+      CreateLobby: (socket, payload: CreateLobbyPayload) =>
+        new CreateLobbyCommand(this.userService, this.lobbyService, socket, payload),
       JoinLobby: (socket, payload: JoinLobbyPayload) =>
         new JoinLobbyCommand(this.userService, this.lobbyService, socket, payload),
       LeaveLobby: (socket, payload: LeaveLobbyPayload) =>
