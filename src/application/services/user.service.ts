@@ -16,6 +16,10 @@ export class UserService {
     return this.userRepository.findById(userId);
   }
 
+  public findByUsername(username: string): User | undefined {
+    return this.userRepository.findByUsername(username);
+  }
+
   public findAll(): User[] {
     return this.userRepository.findAll();
   }

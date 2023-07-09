@@ -24,7 +24,14 @@ class UserConnectCommand implements Command {
       throw new InvalidPayloadException('Invalid payload: username must be a non-empty string.');
     }
 
+    const userExists = this.userService.findById(this.socket.id);
+
+    if (userExists) {
+      throw new FailedUserConnectionException(`👋 User: ${this.socket.id} already exists.`);
+    }
+
     const userToCreate = new User(this.socket.id, this.payload.username);
+
     this.userService.save(userToCreate);
     const userCreated = this.userService.findById(this.socket.id);
 

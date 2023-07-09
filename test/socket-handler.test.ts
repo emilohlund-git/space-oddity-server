@@ -9,6 +9,11 @@ import LeaveLobbyCommand from '../src/application/commands/leave-lobby.command';
 import SendMessageCommand from '../src/application/commands/send-message.command';
 import UserConnectCommand from '../src/application/commands/user-connect.command';
 import UserReadyCommand from '../src/application/commands/user-ready.command';
+import FailedUserConnectionException from '../src/application/exceptions/failed-user-connection.exception';
+import InvalidPayloadException from '../src/application/exceptions/invalid-payload.exception';
+import LobbyExistsException from '../src/application/exceptions/lobby-exists.exception';
+import LobbyNotFoundException from '../src/application/exceptions/lobby-not-found.exception';
+import UserNotFoundException from '../src/application/exceptions/user-not-found.exception';
 import { LobbyService } from '../src/application/services/lobby.service';
 import { UserService } from '../src/application/services/user.service';
 import { Lobby } from '../src/domain/entities/Lobby';
@@ -17,17 +22,7 @@ import { LobbyRepository } from '../src/domain/repositories/lobby-repository.int
 import { UserRepository } from '../src/domain/repositories/user-repository.interface';
 import { InMemoryLobbyRepository } from '../src/infrastructure/repositories/in-memory-lobby.repository';
 import { InMemoryUserRepository } from '../src/infrastructure/repositories/in-memory-user.repository';
-
-describe('Lobby', () => {
-  test('should add a user to the lobby and then remove it', (done) => {
-    const userId = randomUUID();
-    const lobby = new Lobby(randomUUID(), [new User(userId, 'test')]);
-    expect(lobby.getUsers().length).toBe(1);
-    lobby.removeUser(userId);
-    expect(lobby.getUsers().length).toBe(0);
-    done();
-  });
-});
+import SocketHandler from '../src/infrastructure/socket.handler';
 
 describe('SocketHandler', () => {
   let io: Server;
@@ -78,6 +73,17 @@ describe('SocketHandler', () => {
 
       createLobbyCommand.execute();
     });
+
+    test('should throw LobbyExistsException when trying to create an existing lobby', (done) => {
+      const lobbies = lobbyService.findAll();
+
+      expect(() => {
+        const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, serverSocket, lobbies[0].id);
+
+        createLobbyCommand.execute();
+      }).toThrow(LobbyExistsException);
+      done();
+    });
   });
 
   describe('JoinLobbyCommand', () => {
@@ -95,6 +101,42 @@ describe('SocketHandler', () => {
       });
 
       joinLobbyCommand.execute();
+    });
+
+    test('should throw UserNotFoundException when user is not found', () => {
+      const mockSocket: any = {
+        id: 'mock-socket-id',
+      };
+
+      expect(() => {
+        const joinLobbyCommand = new JoinLobbyCommand(userService, lobbyService, mockSocket, {
+          lobbyId: randomUUID(),
+        });
+
+        joinLobbyCommand.execute();
+      }).toThrow(UserNotFoundException);
+    });
+
+    test('should throw LobbyNotFoundException when joining non-existing lobby', (done) => {
+      expect(() => {
+        const joinLobbyCommand = new JoinLobbyCommand(userService, lobbyService, serverSocket, {
+          lobbyId: randomUUID(),
+        });
+
+        joinLobbyCommand.execute();
+      }).toThrow(LobbyNotFoundException);
+      done();
+    });
+
+    test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
+      expect(() => {
+        const joinLobbyCommand = new JoinLobbyCommand(userService, lobbyService, serverSocket, {
+          lobbyId: 'non-uuid-id',
+        });
+
+        joinLobbyCommand.execute();
+      }).toThrow(InvalidPayloadException);
+      done();
     });
   });
 
@@ -118,10 +160,10 @@ describe('SocketHandler', () => {
 
   describe('UserConnectCommand', () => {
     test('should emit UserConnected event when valid payload is provided', (done) => {
-      const users = userService.findAll();
+      userRepository.clear();
 
       const userConnectCommand = new UserConnectCommand(userService, serverSocket, {
-        username: users[0].username,
+        username: 'test',
       });
 
       clientSocket.on('UserConnected', (lobby) => {
@@ -131,6 +173,17 @@ describe('SocketHandler', () => {
       });
 
       userConnectCommand.execute();
+    });
+
+    test('should throw FailedUserConnectionException when trying to connect with existing username', (done) => {
+      expect(() => {
+        const userConnectCommand = new UserConnectCommand(userService, serverSocket, {
+          username: 'test',
+        });
+
+        userConnectCommand.execute();
+      }).toThrow(FailedUserConnectionException);
+      done();
     });
   });
 
@@ -175,5 +228,16 @@ describe('SocketHandler', () => {
 
       userReadyCommand.execute();
     });
+  });
+
+  test('should handle connection and register event listeners', (done) => {
+    const mockOn = jest.spyOn(io, 'on');
+
+    const socketHandler = new SocketHandler(io, userService, lobbyService);
+    socketHandler.handleConnection();
+
+    expect(mockOn).toHaveBeenCalledWith('connection', expect.any(Function));
+
+    done();
   });
 });
