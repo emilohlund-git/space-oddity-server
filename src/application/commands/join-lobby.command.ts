@@ -34,6 +34,7 @@ class JoinLobbyCommand implements Command {
     }
 
     const lobby = this.lobbyService.findById(this.payload.lobbyId);
+
     if (!lobby) {
       throw new LobbyNotFoundException(`👋 Lobby: ${this.payload.lobbyId} does not exist.`);
     }

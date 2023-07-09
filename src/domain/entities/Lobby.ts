@@ -1,7 +1,9 @@
 import { User } from './User';
 
 export class Lobby {
-  constructor(public readonly id: string, private readonly users: User[]) { }
+  private users: User[] = [];
+
+  constructor(public readonly id: string) { }
 
   public addUser(user: User): void {
     this.users.push(user);

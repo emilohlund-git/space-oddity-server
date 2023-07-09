@@ -37,7 +37,8 @@ class CreateLobbyCommand implements Command {
       throw new LobbyExistsException(`Lobby already exists with ID: ${lobbyId}`);
     }
 
-    const lobby = new Lobby(lobbyId, [user]);
+    const lobby = new Lobby(lobbyId);
+    lobby.addUser(user);
     this.lobbyService.save(lobby);
     this.socket.emit('LobbyCreated', lobby);
   }
