@@ -3,7 +3,9 @@ import { Server, Socket } from 'socket.io';
 import CreateLobbyCommand, { CreateLobbyPayload } from '../application/commands/create-lobby.command';
 import JoinLobbyCommand, { JoinLobbyPayload } from '../application/commands/join-lobby.command';
 import LeaveLobbyCommand, { LeaveLobbyPayload } from '../application/commands/leave-lobby.command';
+import SendMessageCommand, { SendMessagePayload } from '../application/commands/send-message.command';
 import UserConnectCommand, { UserConnectPayload } from '../application/commands/user-connect.command';
+import UserReadyCommand, { UserReadyPayload } from '../application/commands/user-ready.command';
 import { LobbyService } from '../application/services/lobby.service';
 import { UserService } from '../application/services/user.service';
 import { logger } from '../configurations/logger.config';
@@ -39,6 +41,10 @@ class SocketHandler {
         new JoinLobbyCommand(this.userService, this.lobbyService, socket, payload),
       LeaveLobby: (socket, payload: LeaveLobbyPayload) =>
         new LeaveLobbyCommand(this.userService, this.lobbyService, socket, payload),
+      SendMessage: (socket, payload: SendMessagePayload) =>
+        new SendMessageCommand(socket, payload),
+      UserReady: (socket, payload: UserReadyPayload) =>
+        new UserReadyCommand(socket, payload),
     };
   }
 
