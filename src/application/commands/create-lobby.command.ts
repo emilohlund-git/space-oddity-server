@@ -9,16 +9,22 @@ import { LobbyService } from '../services/lobby.service';
 import { UserService } from '../services/user.service';
 import { isValidUUID } from '../utils/uuid.validator';
 
+export type CreateLobbyPayload = {
+  lobbyId: string;
+};
+
 class CreateLobbyCommand implements Command {
   constructor(
     private readonly userService: UserService,
     private readonly lobbyService: LobbyService,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload?: string,
+    private readonly payload: CreateLobbyPayload = {
+      lobbyId: randomUUID(),
+    },
   ) { }
 
   execute(): void {
-    const lobbyId = randomUUID();
+    const { lobbyId } = this.payload;
 
     // Validate input
     if (!lobbyId || !isValidUUID(lobbyId)) {
@@ -31,7 +37,7 @@ class CreateLobbyCommand implements Command {
       throw new UserNotFoundException(`User not found with ID: ${this.socket.id}`);
     }
 
-    const lobbyExists = this.lobbyService.findById(this.payload ? this.payload : lobbyId);
+    const lobbyExists = this.lobbyService.findById(lobbyId);
 
     if (lobbyExists) {
       throw new LobbyExistsException(`Lobby already exists with ID: ${lobbyId}`);
