@@ -14,6 +14,7 @@ class CreateLobbyCommand implements Command {
     private readonly userService: UserService,
     private readonly lobbyService: LobbyService,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
+    private readonly payload?: string,
   ) { }
 
   execute(): void {
@@ -25,11 +26,13 @@ class CreateLobbyCommand implements Command {
     }
 
     const user = this.userService.findById(this.socket.id);
+
     if (!user) {
       throw new UserNotFoundException(`User not found with ID: ${this.socket.id}`);
     }
 
-    const lobbyExists = this.lobbyService.findById(lobbyId);
+    const lobbyExists = this.lobbyService.findById(this.payload ? this.payload : lobbyId);
+
     if (lobbyExists) {
       throw new LobbyExistsException(`Lobby already exists with ID: ${lobbyId}`);
     }

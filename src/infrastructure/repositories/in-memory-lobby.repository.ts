@@ -20,5 +20,9 @@ export class InMemoryLobbyRepository implements LobbyRepository {
     return Array.from(this.lobbies.values());
   }
 
+  clear() {
+    this.lobbies = new Map<string, Lobby>();
+  }
+
   // Implement other methods as needed
 }
