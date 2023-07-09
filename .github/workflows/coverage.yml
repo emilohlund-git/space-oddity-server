@@ -1,27 +1,11 @@
-name: Build & Deploy
+name: "coverage"
 on:
-  push:
+  pull_request_target:
     branches:
       - main
-
 jobs:
-  build-deploy:
-    runs-on: ubuntu-18.04
+  coverage:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
-        with:
-          node-version: 14
-
-      - run: npm install
-      - run: npm run build
-      - run: npm run test:cov
-      - run: npm i coverage-badges-cli -g
-      - run: coverage-badges --output coverage/badges.svg
-
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/master'
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./coverage
+      - uses: actions/checkout@v3
+      - uses: ArtiomTr/jest-coverage-report-action@v2
