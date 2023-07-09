@@ -5,6 +5,7 @@ import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import { LobbyService } from '../services/lobby.service';
 import { UserService } from '../services/user.service';
+import { isValidUUID } from '../utils/uuid.validator';
 
 export type JoinLobbyPayload = {
   lobbyId: string;
@@ -22,8 +23,8 @@ class JoinLobbyCommand implements Command {
     const { lobbyId } = this.payload;
 
     // Validate input
-    if (!lobbyId || typeof lobbyId !== 'string') {
-      throw new InvalidPayloadException('Invalid payload: lobbyId must be a non-empty string.');
+    if (!lobbyId || !isValidUUID(lobbyId)) {
+      throw new InvalidPayloadException('Invalid payload: lobbyId must be an UUID.');
     }
 
     const user = this.userService.findById(this.socket.id);
@@ -39,7 +40,7 @@ class JoinLobbyCommand implements Command {
 
     lobby.addUser(user);
     this.lobbyService.save(lobby);
-    this.socket.emit('LobbyCreated', lobby);
+    this.socket.emit('UserJoinedLobby', lobby.id, user);
   }
 }
 

@@ -15,4 +15,8 @@ export class LobbyService {
   findById(lobbyId: string) {
     return this.lobbyRepository.findById(lobbyId);
   }
+
+  findAll(): Lobby[] {
+    return this.lobbyRepository.findAll();
+  }
 }

@@ -16,5 +16,9 @@ export class InMemoryUserRepository implements UserRepository {
     return this.users.get(id);
   }
 
+  findAll(): User[] {
+    return Array.from(this.users.values());
+  }
+
   // Implement other methods as needed
 }
