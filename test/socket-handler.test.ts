@@ -48,12 +48,12 @@ describe('SocketHandler', () => {
       clientSocket = new Client(`http://localhost:${port}`);
       io.on('connection', (socket) => {
         serverSocket = socket;
-        const testUser = new User(socket.id, 'test');
-        userService.save(testUser);
-        lobbyService.save(new Lobby(randomUUID(), [testUser]));
       });
       clientSocket.on('connect', done);
     });
+
+    userRepository.clear();
+    lobbyRepository.clear();
   });
 
   afterAll(() => {
@@ -63,6 +63,9 @@ describe('SocketHandler', () => {
 
   describe('CreateLobbyCommand', () => {
     test('should emit LobbyCreated event when valid payload is provided', (done) => {
+      const testUser = new User(clientSocket.id, 'test');
+      userService.save(testUser);
+
       const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, serverSocket);
 
       clientSocket.on('LobbyCreated', (lobby) => {
@@ -88,14 +91,23 @@ describe('SocketHandler', () => {
 
   describe('JoinLobbyCommand', () => {
     test('should emit UserJoinedLobby event when valid payload is provided', (done) => {
-      const lobbies = lobbyService.findAll();
+      const testLobby = new Lobby(randomUUID());
+      lobbyService.save(testLobby);
+
+      const testUser = new User(clientSocket.id, 'test');
+      userService.save(testUser);
+
+      expect(testLobby.getUsers().length).toBe(0);
 
       const joinLobbyCommand = new JoinLobbyCommand(userService, lobbyService, serverSocket, {
-        lobbyId: lobbies[0].id,
+        lobbyId: testLobby.id,
       });
 
-      clientSocket.on('UserJoinedLobby', (lobby) => {
-        expect(lobby).toBeDefined();
+      clientSocket.on('UserJoinedLobby', (lobbyId, userId) => {
+        expect(lobbyId).toBeDefined();
+        expect(userId).toBeDefined();
+        const lobby = lobbyService.findById(lobbyId);
+        expect(lobby?.getUsers().length).toBe(1);
 
         done();
       });
@@ -142,7 +154,9 @@ describe('SocketHandler', () => {
 
   describe('LeaveLobbyCommand', () => {
     test('should emit UserLeftLobby event when valid payload is provided', (done) => {
-      let lobbies = lobbyService.findAll();
+      const lobbies = lobbyService.findAll();
+
+      expect(lobbies[0].getUsers().length).toBe(1);
 
       const leaveLobbyCommand = new LeaveLobbyCommand(userService, lobbyService, serverSocket, {
         lobbyId: lobbies[0].id,
@@ -151,6 +165,10 @@ describe('SocketHandler', () => {
       clientSocket.on('UserLeftLobby', (lobbyId, userId) => {
         expect(lobbyId).toBeDefined();
         expect(userId).toBeDefined();
+
+        const lobby = lobbyService.findById(lobbyId);
+        expect(lobby?.getUsers().length).toBe(0);
+
         done();
       });
 
