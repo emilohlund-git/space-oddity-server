@@ -4,8 +4,13 @@ on: [pull_request]
 jobs:
   code-coverage:
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x]
+
     steps:
-      - name: "Checkout Repository"
+      - name: Checkout Repository
         uses: actions/checkout@v3
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
@@ -13,9 +18,9 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
       - run: npm run build --if-present
-      - name: "Run Tests"
+      - name: Run Tests
         run: npm test -- --coverage
-      - name: "Code Coverage"
+      - name: Code Coverage
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
