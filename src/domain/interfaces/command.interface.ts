@@ -1,5 +1,4 @@
 import type { Socket } from 'socket.io';
-import { CreateLobbyPayload } from '../../application/commands/create-lobby.command';
 import { JoinLobbyPayload } from '../../application/commands/join-lobby.command';
 import { LeaveLobbyPayload } from '../../application/commands/leave-lobby.command';
 import { SendMessagePayload } from '../../application/commands/send-message.command';
@@ -10,7 +9,7 @@ import { User } from '../entities/User';
 
 export type ClientEvents = {
   UserConnect: (payload: UserConnectPayload) => void;
-  CreateLobby: (payload: CreateLobbyPayload) => void;
+  CreateLobby: () => void;
   JoinLobby: (payload: JoinLobbyPayload) => void;
   LeaveLobby: (payload: LeaveLobbyPayload) => void;
   SendMessage: (payload: SendMessagePayload) => void;

@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import type { Socket } from 'socket.io';
 import { Lobby } from '../../domain/entities/Lobby';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
@@ -6,25 +7,21 @@ import LobbyExistsException from '../exceptions/lobby-exists.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import { LobbyService } from '../services/lobby.service';
 import { UserService } from '../services/user.service';
-
-export type CreateLobbyPayload = {
-  lobbyId: string;
-};
+import { isValidUUID } from '../utils/uuid.validator';
 
 class CreateLobbyCommand implements Command {
   constructor(
     private readonly userService: UserService,
     private readonly lobbyService: LobbyService,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: CreateLobbyPayload,
   ) { }
 
   execute(): void {
-    const { lobbyId } = this.payload;
+    const lobbyId = randomUUID();
 
     // Validate input
-    if (!lobbyId || typeof lobbyId !== 'string') {
-      throw new InvalidPayloadException('Invalid payload: lobbyId must be a non-empty string.');
+    if (!lobbyId || !isValidUUID(lobbyId)) {
+      throw new InvalidPayloadException('Invalid payload: lobbyId must be an UUID.');
     }
 
     const user = this.userService.findById(this.socket.id);
