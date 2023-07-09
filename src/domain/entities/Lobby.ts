@@ -14,5 +14,9 @@ export class Lobby {
     }
   }
 
+  public getUsers(): User[] {
+    return this.users;
+  }
+
   // Add other lobby-related behavior and methods as needed
 }

@@ -5,6 +5,7 @@ import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import { LobbyService } from '../services/lobby.service';
 import { UserService } from '../services/user.service';
+import { isValidUUID } from '../utils/uuid.validator';
 
 export type LeaveLobbyPayload = {
   lobbyId: string;
@@ -22,22 +23,25 @@ class LeaveLobbyCommand implements Command {
     const { lobbyId } = this.payload;
 
     // Validate input
-    if (!lobbyId || typeof lobbyId !== 'string') {
-      throw new InvalidPayloadException('Invalid payload: lobbyId must be a non-empty string.');
+    if (!lobbyId || !isValidUUID(lobbyId)) {
+      throw new InvalidPayloadException('Invalid payload: lobbyId must be an UUID.');
     }
 
     const user = this.userService.findById(this.socket.id);
+
     if (!user) {
       throw new UserNotFoundException(`👋 User: ${this.socket.id} does not exist.`);
     }
-    const lobby = this.lobbyService.findById(this.payload.lobbyId);
+
+    const lobby = this.lobbyService.findById(lobbyId);
+
     if (!lobby) {
-      throw new LobbyNotFoundException(`👋 Lobby: ${this.payload.lobbyId} does not exist.`);
+      throw new LobbyNotFoundException(`👋 Lobby: ${lobbyId} does not exist.`);
     }
 
-    lobby.removeUser(this.socket.id);
+    lobby.removeUser(user.id);
     this.lobbyService.save(lobby);
-    this.socket.emit('LobbyCreated', lobby);
+    this.socket.emit('UserLeftLobby', lobby.id, user.id);
   }
 }
 

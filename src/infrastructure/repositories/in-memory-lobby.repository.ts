@@ -16,5 +16,9 @@ export class InMemoryLobbyRepository implements LobbyRepository {
     return this.lobbies.get(id);
   }
 
+  findAll(): Lobby[] {
+    return Array.from(this.lobbies.values());
+  }
+
   // Implement other methods as needed
 }

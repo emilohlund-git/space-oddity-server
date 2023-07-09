@@ -16,7 +16,7 @@ dotenv.config();
 const validApiKeys = [process.env.API_KEY];
 
 class SocketHandler {
-  private readonly commands: Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: any) => Command>;
+  private commands: Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: any) => Command>;
 
   private readonly io: Server;
 
@@ -46,6 +46,14 @@ class SocketHandler {
       UserReady: (socket, payload: UserReadyPayload) =>
         new UserReadyCommand(socket, payload),
     };
+  }
+
+  public getCommands(): Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: any) => Command> {
+    return this.commands;
+  }
+
+  public setCommands(commands: any) {
+    this.commands = commands;
   }
 
   public handleConnection(): void {

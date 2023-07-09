@@ -15,4 +15,8 @@ export class UserService {
   public findById(userId: string) {
     return this.userRepository.findById(userId);
   }
+
+  public findAll(): User[] {
+    return this.userRepository.findAll();
+  }
 }
