@@ -1,6 +1,7 @@
 import { UUID, randomUUID } from 'crypto';
 import InsufficientCardsException from '../../application/exceptions/insufficient-cards.exception';
 import Card from './Card';
+import Player from './Player';
 
 class Deck {
   public id: UUID = randomUUID();
@@ -30,6 +31,36 @@ class Deck {
 
     const drawnCards = this.cards.splice(0, count);
     return drawnCards;
+  }
+
+  distributeCardsToPlayers(players: Player[]) {
+    const numPlayers = players.length;
+    const cardsPerPlayer = Math.floor(this.cards.length / numPlayers);
+    const remainingCards = this.cards.length % numPlayers;
+
+    const distributedCards = [];
+
+    for (let i = 0; i < cardsPerPlayer; i++) {
+      for (let j = 0; j < numPlayers; j++) {
+        const player = players[j];
+        const card = this.drawCard();
+        if (card) {
+          player.addToHand(card);
+          distributedCards.push(card);
+        }
+      }
+    }
+
+    for (let i = 0; i < remainingCards; i++) {
+      const player = players[i];
+      const card = this.drawCard();
+      if (card) {
+        player.addToHand(card);
+        distributedCards.push(card);
+      }
+    }
+
+    return distributedCards;
   }
 
   public shuffle(): void {

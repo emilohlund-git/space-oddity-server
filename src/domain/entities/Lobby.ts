@@ -1,9 +1,9 @@
 import { UUID } from 'crypto';
 import Deck from './Deck';
-import { User } from './User';
+import Player from './Player';
 
 export class Lobby {
-  private users: User[] = [];
+  private users: Player[] = [];
 
   private deck: Deck;
 
@@ -19,7 +19,7 @@ export class Lobby {
     return this.deck;
   }
 
-  public addUser(user: User): void {
+  public addUser(user: Player): void {
     this.users.push(user);
   }
 
@@ -30,7 +30,7 @@ export class Lobby {
     }
   }
 
-  public getUsers(): User[] {
+  public getPlayers(): Player[] {
     return this.users;
   }
 

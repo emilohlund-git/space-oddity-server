@@ -1,12 +1,10 @@
 import { UUID } from 'crypto';
 import type { Socket } from 'socket.io';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import InvalidPayloadException from '../exceptions/invalid-payload.exception';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
-import { LobbyService } from '../services/lobby.service';
-import { UserService } from '../services/user.service';
-import { isValidUUID } from '../utils/uuid.validator';
+import GameService from '../services/game.service';
+import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type LeaveLobbyPayload = {
   lobbyId: UUID;
@@ -14,8 +12,7 @@ export type LeaveLobbyPayload = {
 
 class LeaveLobbyCommand implements Command {
   constructor(
-    private readonly userService: UserService,
-    private readonly lobbyService: LobbyService,
+    private readonly gameService: GameService,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: LeaveLobbyPayload,
   ) { }
@@ -23,25 +20,23 @@ class LeaveLobbyCommand implements Command {
   execute(): void {
     const { lobbyId } = this.payload;
 
-    // Validate input
-    if (!lobbyId || !isValidUUID(lobbyId)) {
-      throw new InvalidPayloadException('Invalid payload: lobbyId must be an UUID.');
-    }
+    const payloadValidationRules = createPayloadValidationRules(this.payload);
+    validatePayload(this.payload, payloadValidationRules);
 
-    const user = this.userService.findById(this.socket.id);
+    const user = this.gameService.getUserService().findById(this.socket.id);
 
     if (!user) {
       throw new UserNotFoundException(`👋 User: ${this.socket.id} does not exist.`);
     }
 
-    const lobby = this.lobbyService.findById(lobbyId);
+    const lobby = this.gameService.getLobbyService().findById(lobbyId);
 
     if (!lobby) {
       throw new LobbyNotFoundException(`👋 Lobby: ${lobbyId} does not exist.`);
     }
 
     lobby.removeUser(user.id);
-    this.lobbyService.save(lobby);
+    this.gameService.getLobbyService().save(lobby);
     this.socket.emit('UserLeftLobby', lobby.id, user.id);
   }
 }
