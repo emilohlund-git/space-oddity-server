@@ -9,18 +9,22 @@
 
 </div>
 
-<img src="https://sirine.fly.dev/api/files/xwaj66ih9a3b7h5/og3amxyxw6c12k2/white_bh_A4yrhkVkqc.png?token=" style="height: 250px; width: 100%; object-fit: cover"/>
+<img src="./white-bh.png" style="height: 250px; width: 100%; object-fit: cover"/>
 <hr/>
 
 # 🚀 Introduction
 
 Welcome to the **Space Oddity** Card Game Server! This server provides a functional real-time API for the graphical representation of the Space Oddity card game. It enables seamless communication between the client application and the server, allowing multiple players to participate and enjoy the game in real-time.
 
+<hr/>
+
 # 🎮 Game Rules
 
 Space Oddity is a thrilling card game where your objective is to be the first player to run out of cards. Beware of the dreaded "black hole" card, as the last player holding it at the end of the game will lose! The game features various unique card types that introduce exciting gameplay mechanics, including card switching, deck swapping, and deck peeking.
 
 For a complete set of game rules and instructions, please refer to the official [Space Oddity Rules](https://your-rules-url.com) document.
+
+<hr/>
 
 # ⭐️ Gameplay Overview
 
@@ -31,6 +35,8 @@ Space Oddity is a thrilling card game where your objective is to be the first pl
 | **The Switcher** | ![The Switcher](https://sirine.fly.dev/api/files/3o8j8h3187un9r9/an9k6nb64ieufaj/9xhWCG51Xj6_sal31X3hTh.jpg?token=&thumb=250x250)  | Switches the LED light color from blue to red. Once the light is switched, the hidden red black hole ring will appear somewhere else. |
 | **The Joker**    | ![The Joker](https://sirine.fly.dev/api/files/3o8j8h3187un9r9/an9k6nb64ieufaj/8ikTmGd6Wnf_vASzAIoHYP.jpg?token=&thumb=250x250)     | Allows you to switch your whole deck with the person of your choice.                                                                  |
 | **Sneak a Peek** | ![Sneak a Peek](https://sirine.fly.dev/api/files/3o8j8h3187un9r9/an9k6nb64ieufaj/10p3ace2WSqi_UzhJ83SQek.jpg?token=&thumb=250x250) | Lets you look at the next person's deck of cards and pick a card of your choice.                                                      |
+
+<hr/>
 
 # 🃏 Example Gameplay
 
@@ -48,6 +54,8 @@ To give you a glimpse of the gameplay, here's an example of a round in the Space
 
 The Space Oddity card game offers a unique blend of chance, strategy, and bluffing, making each round an engaging and enjoyable experience for all players involved.
 
+<hr/>
+
 # 🔧 Technologies Used
 
 The **Space Oddity** Card Game Server leverages the following technologies:
@@ -55,10 +63,13 @@ The **Space Oddity** Card Game Server leverages the following technologies:
 - [Node.js](): Server-side JavaScript runtime environment.
 - [Socket.io](): Library for real-time, bidirectional communication between clients and the server.
 - [Express](): Web framework for handling server routes and requests.
+<hr/>
 
 # 📄 License
 
 This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+<hr/>
 
 # 🙌 Credits
 
