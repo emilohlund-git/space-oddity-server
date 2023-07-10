@@ -19,7 +19,7 @@ export function createPayloadValidationRules(payloadShape: PayloadShape): Record
   return Object.entries(payloadShape).reduce((rules, [key, value]) => {
     let validationFunction: ValidationRule | undefined;
 
-    if (key.endsWith('Id') && !key.startsWith('user')) {
+    if (key.endsWith('Id') && !key.toLowerCase().includes('user')) {
       validationFunction = isValidUUID;
     } else if (typeof value === 'string') {
       validationFunction = isValidString;

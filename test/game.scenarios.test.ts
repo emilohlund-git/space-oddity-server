@@ -10,6 +10,7 @@ import { LobbyService } from '../src/application/services/lobby.service';
 import { TableService } from '../src/application/services/table.service';
 import { UserService } from '../src/application/services/user.service';
 import GameState from '../src/domain/entities/GameState';
+import Hand from '../src/domain/entities/Hand';
 import { Lobby } from '../src/domain/entities/Lobby';
 import Player from '../src/domain/entities/Player';
 import Table from '../src/domain/entities/Table';
@@ -156,6 +157,14 @@ describe('GameScenarios', () => {
       // Ensure the card is added to player2's hand after transfer
       cardExists = players[1].getHand().getCards().some((card) => card.id === cardToTransfer.id);
       expect(cardExists).toBe(true);
+    });
+
+    it('should end the game and return true', () => {
+      const winningPlayer = gameState.lobby.getPlayers()[0];
+
+      winningPlayer.setHand(new Hand());
+
+      expect(gameState.isGameOver()).toBe(true);
     });
   });
 });
