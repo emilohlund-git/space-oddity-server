@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
-import { User } from '../src/domain/entities/User';
-import { UserRepository } from '../src/domain/repositories/user-repository.interface';
-import { InMemoryUserRepository } from '../src/infrastructure/repositories/in-memory-user.repository';
+import { User } from '../../../src/domain/entities/User';
+import { UserRepository } from '../../../src/domain/repositories/user-repository.interface';
+import { InMemoryUserRepository } from '../../../src/infrastructure/repositories/in-memory-user.repository';
 
 describe('UserRepository', () => {
   let userRepository: UserRepository;

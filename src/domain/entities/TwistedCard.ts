@@ -10,8 +10,8 @@ export enum SpecialEffect {
 class TwistedCard extends Card {
   private specialEffect: SpecialEffect;
 
-  constructor(owner: Player, graphic: string, specialEffect: SpecialEffect) {
-    super(owner, graphic, CardType.Twisted);
+  constructor(graphic: string, specialEffect: SpecialEffect, owner?: Player) {
+    super(graphic, CardType.Twisted, owner);
     this.specialEffect = specialEffect;
   }
 

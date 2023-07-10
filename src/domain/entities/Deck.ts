@@ -1,3 +1,4 @@
+import InsufficientCardsException from '../../application/exceptions/insufficient-cards.exception';
 import Card from './Card';
 
 class Deck {
@@ -21,7 +22,7 @@ class Deck {
 
   public drawCards(count: number): Card[] {
     if (count > this.cards.length) {
-      throw new Error('Insufficient cards in the deck.');
+      throw new InsufficientCardsException();
     }
 
     const drawnCards = this.cards.splice(0, count);
@@ -29,9 +30,20 @@ class Deck {
   }
 
   public shuffle(): void {
-    for (let i = this.cards.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [this.cards[i], this.cards[j]] = [this.cards[j], this.cards[i]];
+    let currentIndex = this.cards.length;
+    let temporaryValue: Card;
+    let randomIndex: number;
+
+    // While there remain elements to shuffle
+    while (currentIndex !== 0) {
+      // Pick a remaining element
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      // Swap it with the current element
+      temporaryValue = this.cards[currentIndex];
+      this.cards[currentIndex] = this.cards[randomIndex];
+      this.cards[randomIndex] = temporaryValue;
     }
   }
 
