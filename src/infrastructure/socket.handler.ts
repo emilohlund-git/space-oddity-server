@@ -1,11 +1,11 @@
 import dotenv from 'dotenv';
 import { Server, Socket } from 'socket.io';
-import CreateLobbyCommand, { CreateLobbyPayload } from '../application/commands/create-lobby.command';
-import JoinLobbyCommand, { JoinLobbyPayload } from '../application/commands/join-lobby.command';
-import LeaveLobbyCommand, { LeaveLobbyPayload } from '../application/commands/leave-lobby.command';
-import SendMessageCommand, { SendMessagePayload } from '../application/commands/send-message.command';
-import UserConnectCommand, { UserConnectPayload } from '../application/commands/user-connect.command';
-import UserReadyCommand, { UserReadyPayload } from '../application/commands/user-ready.command';
+import CreateLobbyCommand from '../application/commands/create-lobby.command';
+import JoinLobbyCommand from '../application/commands/join-lobby.command';
+import LeaveLobbyCommand from '../application/commands/leave-lobby.command';
+import SendMessageCommand from '../application/commands/send-message.command';
+import UserConnectCommand from '../application/commands/user-connect.command';
+import UserReadyCommand from '../application/commands/user-ready.command';
 import { LobbyService } from '../application/services/lobby.service';
 import { UserService } from '../application/services/user.service';
 import { logger } from '../configurations/logger.config';
@@ -15,8 +15,10 @@ dotenv.config();
 
 const validApiKeys = [process.env.API_KEY];
 
+export type CommandFactory = Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: any) => Command>;
+
 class SocketHandler {
-  private commands: Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: any) => Command>;
+  private commandFactory: CommandFactory;
 
   private readonly io: Server;
 
@@ -32,46 +34,28 @@ class SocketHandler {
     this.io = io;
     this.userService = userService;
     this.lobbyService = lobbyService;
-    this.commands = {
-      UserConnect: this.createUserConnectCommand.bind(this),
-      CreateLobby: this.createCreateLobbyCommand.bind(this),
-      JoinLobby: this.createJoinLobbyCommand.bind(this),
-      LeaveLobby: this.createLeaveLobbyCommand.bind(this),
-      SendMessage: this.createSendMessageCommand.bind(this),
-      UserReady: this.createUserReadyCommand.bind(this),
+    this.commandFactory = {} as CommandFactory;
+
+    this.registerCommand('UserConnect', UserConnectCommand);
+    this.registerCommand('CreateLobby', CreateLobbyCommand);
+    this.registerCommand('JoinLobby', JoinLobbyCommand);
+    this.registerCommand('LeaveLobby', LeaveLobbyCommand);
+    this.registerCommand('SendMessage', SendMessageCommand);
+    this.registerCommand('UserReady', UserReadyCommand);
+  }
+
+  private registerCommand<T extends Command>(eventName: keyof ClientEvents, commandClass: new (...args: any[]) => T): void {
+    this.commandFactory[eventName] = (socket: Socket<ClientEvents, ServerEvents>, payload: any) => {
+      return new commandClass(this.userService, this.lobbyService, socket, payload);
     };
   }
 
-  private createUserConnectCommand(socket: Socket, payload: UserConnectPayload): Command {
-    return new UserConnectCommand(this.userService, socket, payload);
+  public getCommands(): CommandFactory {
+    return this.commandFactory;
   }
 
-  private createCreateLobbyCommand(socket: Socket, payload: CreateLobbyPayload): Command {
-    return new CreateLobbyCommand(this.userService, this.lobbyService, socket, payload);
-  }
-
-  private createJoinLobbyCommand(socket: Socket, payload: JoinLobbyPayload): Command {
-    return new JoinLobbyCommand(this.userService, this.lobbyService, socket, payload);
-  }
-
-  private createLeaveLobbyCommand(socket: Socket, payload: LeaveLobbyPayload): Command {
-    return new LeaveLobbyCommand(this.userService, this.lobbyService, socket, payload);
-  }
-
-  private createSendMessageCommand(socket: Socket, payload: SendMessagePayload): Command {
-    return new SendMessageCommand(socket, payload);
-  }
-
-  private createUserReadyCommand(socket: Socket, payload: UserReadyPayload): Command {
-    return new UserReadyCommand(socket, payload);
-  }
-
-  public getCommands(): Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: any) => Command> {
-    return this.commands;
-  }
-
-  public setCommands(commands: any) {
-    this.commands = commands;
+  public setCommands(commands: CommandFactory) {
+    this.commandFactory = commands;
   }
 
   public handleConnection(): void {
@@ -94,7 +78,7 @@ class SocketHandler {
       logger.info(`🌎 ${socket.id} has connected.`);
 
 
-      Object.entries(this.commands).forEach(([eventName, createCommand]) => {
+      Object.entries(this.commandFactory).forEach(([eventName, createCommand]) => {
         socket.on(eventName as keyof ClientEvents, (payload: any) => {
           logger.info(`✨ User: ${socket.id} called Event: ${eventName} to perform command: ${createCommand.name}`);
 
