@@ -1,3 +1,4 @@
+import { UUID, randomUUID } from 'crypto';
 import Player from './Player';
 
 export enum CardType {
@@ -7,6 +8,8 @@ export enum CardType {
 }
 
 class Card {
+  public id: UUID = randomUUID();
+
   private owner?: Player;
 
   private graphic: string;

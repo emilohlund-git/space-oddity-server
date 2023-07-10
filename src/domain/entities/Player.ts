@@ -5,11 +5,10 @@ import { User } from './User';
 class Player extends User {
   private hand: Hand;
 
-  constructor(id: string, username: string, hand: Hand) {
+  constructor(id: string, username: string, hand: Hand = new Hand()) {
     super(id, username);
 
     this.hand = hand;
-    this.hand.setPlayer(this);
   }
 
   public getId(): string {

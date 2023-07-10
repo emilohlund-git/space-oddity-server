@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { UserService } from '../../../src/application/services/user.service';
-import { User } from '../../../src/domain/entities/User';
+import Hand from '../../../src/domain/entities/Hand';
+import Player from '../../../src/domain/entities/Player';
 import { UserRepository } from '../../../src/domain/repositories/user-repository.interface';
 import { InMemoryUserRepository } from '../../../src/infrastructure/repositories/in-memory-user.repository';
 
@@ -19,7 +20,7 @@ describe('UserService', () => {
 
       expect(user?.username).toBe(undefined);
 
-      userService.save(new User(randomUUID(), 'test'));
+      userService.save(new Player(randomUUID(), 'test', new Hand()));
 
       user = userService.findByUsername('test');
 

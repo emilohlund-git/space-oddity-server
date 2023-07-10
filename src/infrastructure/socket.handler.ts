@@ -3,9 +3,11 @@ import { Server, Socket } from 'socket.io';
 import CreateLobbyCommand from '../application/commands/create-lobby.command';
 import JoinLobbyCommand from '../application/commands/join-lobby.command';
 import LeaveLobbyCommand from '../application/commands/leave-lobby.command';
+import PickedCardCommand from '../application/commands/picked-card.command';
 import SendMessageCommand from '../application/commands/send-message.command';
 import UserConnectCommand from '../application/commands/user-connect.command';
 import UserReadyCommand from '../application/commands/user-ready.command';
+import { CardService } from '../application/services/card.service';
 import { LobbyService } from '../application/services/lobby.service';
 import { UserService } from '../application/services/user.service';
 import { logger } from '../configurations/logger.config';
@@ -22,31 +24,31 @@ class SocketHandler {
 
   private readonly io: Server;
 
-  private readonly userService: UserService;
-
-  private readonly lobbyService: LobbyService;
-
   constructor(
     io: Server,
-    userService: UserService,
-    lobbyService: LobbyService,
+    private readonly userService: UserService,
+    private readonly lobbyService: LobbyService,
+    private readonly cardService: CardService,
   ) {
     this.io = io;
-    this.userService = userService;
-    this.lobbyService = lobbyService;
     this.commandFactory = {} as CommandFactory;
 
-    this.registerCommand('UserConnect', UserConnectCommand);
-    this.registerCommand('CreateLobby', CreateLobbyCommand);
-    this.registerCommand('JoinLobby', JoinLobbyCommand);
-    this.registerCommand('LeaveLobby', LeaveLobbyCommand);
+    this.registerCommand('UserConnect', UserConnectCommand, [this.userService]);
+    this.registerCommand('CreateLobby', CreateLobbyCommand, [this.userService, this.lobbyService]);
+    this.registerCommand('JoinLobby', JoinLobbyCommand, [this.userService, this.lobbyService]);
+    this.registerCommand('LeaveLobby', LeaveLobbyCommand, [this.userService, this.lobbyService]);
     this.registerCommand('SendMessage', SendMessageCommand);
     this.registerCommand('UserReady', UserReadyCommand);
+    this.registerCommand('PickedCard', PickedCardCommand, [this.userService, this.cardService]);
   }
 
-  private registerCommand<T extends Command>(eventName: keyof ClientEvents, commandClass: new (...args: any[]) => T): void {
+  private registerCommand<T extends Command>(
+    eventName: keyof ClientEvents,
+    commandClass: new (...args: any[]) => T,
+    commandArgs: any[] = [],
+  ): void {
     this.commandFactory[eventName] = (socket: Socket<ClientEvents, ServerEvents>, payload: any) => {
-      return new commandClass(this.userService, this.lobbyService, socket, payload);
+      return new commandClass(...commandArgs, socket, payload);
     };
   }
 

@@ -182,24 +182,25 @@ describe('Entities', () => {
     });
   });
 
-  describe('Hand', () => {
-    test('Should return the hands player', (done) => {
-      const testHand = new Hand();
+  describe('Lobby', () => {
+    test('should set a deck for the lobby', (done) => {
+      const oldDeck = new Deck();
+      const newDeck = new Deck();
 
-      expect(testHand.getPlayer()).toBe(undefined);
+      const lobby = new Lobby(randomUUID(), oldDeck);
 
-      const testPlayer = new Player(randomUUID(), 'test', testHand);
+      expect(lobby.getDeck()).toBe(oldDeck);
 
-      expect(testHand.getPlayer()).toEqual(testPlayer);
+      lobby.setDeck(newDeck);
+
+      expect(lobby.getDeck()).toBe(newDeck);
 
       done();
     });
-  });
 
-  describe('Lobby', () => {
     test('should add a user to the lobby and then remove it', (done) => {
       const userId = randomUUID();
-      const lobby = new Lobby(randomUUID());
+      const lobby = new Lobby(randomUUID(), new Deck());
       expect(lobby.getUsers().length).toBe(0);
       const testUser = new User(userId, 'test');
       lobby.addUser(testUser);

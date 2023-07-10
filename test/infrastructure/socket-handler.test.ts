@@ -1,25 +1,34 @@
 /* eslint-disable import/no-extraneous-dependencies */
-import { randomUUID } from 'crypto';
+import { UUID, randomUUID } from 'crypto';
 import { createServer } from 'http';
 import { Server, Socket as ServerSocket } from 'socket.io';
 import Client, { Socket as ClientSocket } from 'socket.io-client';
 import CreateLobbyCommand from '../../src/application/commands/create-lobby.command';
 import JoinLobbyCommand from '../../src/application/commands/join-lobby.command';
 import LeaveLobbyCommand from '../../src/application/commands/leave-lobby.command';
+import PickedCardCommand from '../../src/application/commands/picked-card.command';
 import SendMessageCommand from '../../src/application/commands/send-message.command';
 import UserConnectCommand from '../../src/application/commands/user-connect.command';
 import UserReadyCommand from '../../src/application/commands/user-ready.command';
+import CardNotFoundException from '../../src/application/exceptions/card-not-found.exception';
+import CardNotInHandException from '../../src/application/exceptions/card-not-in-hand.exception';
 import FailedUserConnectionException from '../../src/application/exceptions/failed-user-connection.exception';
 import InvalidPayloadException from '../../src/application/exceptions/invalid-payload.exception';
 import LobbyExistsException from '../../src/application/exceptions/lobby-exists.exception';
 import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../../src/application/exceptions/user-not-found.exception';
+import { CardService } from '../../src/application/services/card.service';
 import { LobbyService } from '../../src/application/services/lobby.service';
 import { UserService } from '../../src/application/services/user.service';
+import Card from '../../src/domain/entities/Card';
+import Deck from '../../src/domain/entities/Deck';
+import Hand from '../../src/domain/entities/Hand';
 import { Lobby } from '../../src/domain/entities/Lobby';
-import { User } from '../../src/domain/entities/User';
+import Player from '../../src/domain/entities/Player';
+import { CardRepository } from '../../src/domain/repositories/card-repository.interface';
 import { LobbyRepository } from '../../src/domain/repositories/lobby-repository.interface';
 import { UserRepository } from '../../src/domain/repositories/user-repository.interface';
+import { InMemoryCardRepository } from '../../src/infrastructure/repositories/in-memory-card.repository';
 import { InMemoryLobbyRepository } from '../../src/infrastructure/repositories/in-memory-lobby.repository';
 import { InMemoryUserRepository } from '../../src/infrastructure/repositories/in-memory-user.repository';
 import SocketHandler from '../../src/infrastructure/socket.handler';
@@ -28,14 +37,18 @@ describe('SocketHandler', () => {
   let io: Server;
   let serverSocket: ServerSocket;
   let clientSocket: ClientSocket;
+  let cardRepository: CardRepository;
+  let cardService: CardService;
   let userRepository: UserRepository;
   let userService: UserService;
   let lobbyRepository: LobbyRepository;
   let lobbyService: LobbyService;
 
   beforeAll((done) => {
+    cardRepository = new InMemoryCardRepository();
     userRepository = new InMemoryUserRepository();
     lobbyRepository = new InMemoryLobbyRepository();
+    cardService = new CardService(cardRepository);
     userService = new UserService(userRepository);
     lobbyService = new LobbyService(lobbyRepository);
 
@@ -63,7 +76,7 @@ describe('SocketHandler', () => {
 
   describe('CreateLobbyCommand', () => {
     test('should emit LobbyCreated event when valid payload is provided', (done) => {
-      const testUser = new User(clientSocket.id, 'test');
+      const testUser = new Player(clientSocket.id, 'test');
       userService.save(testUser);
 
       const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, serverSocket);
@@ -85,6 +98,7 @@ describe('SocketHandler', () => {
       expect(() => {
         const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, mockSocket, {
           lobbyId: randomUUID(),
+          deck: new Deck(),
         });
 
         createLobbyCommand.execute();
@@ -94,7 +108,8 @@ describe('SocketHandler', () => {
     test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
       expect(() => {
         const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, serverSocket, {
-          lobbyId: 'non-uuid-id',
+          lobbyId: 'non-uuid-id' as UUID,
+          deck: new Deck(),
         });
 
         createLobbyCommand.execute();
@@ -108,6 +123,7 @@ describe('SocketHandler', () => {
       expect(() => {
         const createLobbyCommand = new CreateLobbyCommand(userService, lobbyService, serverSocket, {
           lobbyId: lobbies[0].id,
+          deck: new Deck(),
         });
 
         createLobbyCommand.execute();
@@ -118,10 +134,10 @@ describe('SocketHandler', () => {
 
   describe('JoinLobbyCommand', () => {
     test('should emit UserJoinedLobby event when valid payload is provided', (done) => {
-      const testLobby = new Lobby(randomUUID());
+      const testLobby = new Lobby(randomUUID(), new Deck());
       lobbyService.save(testLobby);
 
-      const testUser = new User(clientSocket.id, 'test');
+      const testUser = new Player(clientSocket.id, 'test', new Hand());
       userService.save(testUser);
 
       expect(testLobby.getUsers().length).toBe(0);
@@ -170,11 +186,97 @@ describe('SocketHandler', () => {
     test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
       expect(() => {
         const joinLobbyCommand = new JoinLobbyCommand(userService, lobbyService, serverSocket, {
-          lobbyId: 'non-uuid-id',
+          lobbyId: 'non-uuid-id' as UUID,
         });
 
         joinLobbyCommand.execute();
       }).toThrow(InvalidPayloadException);
+      done();
+    });
+  });
+
+  describe('PickedCardCommand', () => {
+    test('should emit PickedCard event when valid payload is provided', (done) => {
+      const testCard = new Card('');
+      cardService.save(testCard);
+
+      const previousId = randomUUID();
+      const newId = randomUUID();
+
+      const previousOwner = new Player(previousId, 'test-1');
+      const newOwner = new Player(newId, 'test-2');
+
+      testCard.setOwner(previousOwner);
+      previousOwner.addToHand(testCard);
+
+      userService.save(previousOwner);
+      userService.save(newOwner);
+
+      const pickedCardCommand = new PickedCardCommand(userService, cardService, serverSocket, {
+        cardId: testCard.id,
+        previousOwnerId: previousOwner.id,
+        newOwnerId: newOwner.id,
+      });
+
+      expect(testCard.getOwner()).toEqual(previousOwner);
+
+      clientSocket.on('PickedCard', (newOwnerId, cardId) => {
+        expect(newOwnerId).toBeDefined();
+        expect(cardId).toBeDefined();
+        expect(newOwnerId).toEqual(newOwner.id);
+        expect(cardId).toEqual(testCard.id);
+        expect(testCard.getOwner()).toEqual(newOwner);
+
+        done();
+      });
+
+      pickedCardCommand.execute();
+    });
+
+    test('should throw CardNotInHandException when providing non-existing cardId', (done) => {
+      expect(() => {
+        const testCard = new Card('');
+        cardService.save(testCard);
+
+        const previousOwnerId = randomUUID();
+        const newOwnerId = randomUUID();
+
+        const previousOwner = new Player(previousOwnerId, 'test-1');
+        const newOwner = new Player(newOwnerId, 'test-2');
+
+        userService.save(previousOwner);
+        userService.save(newOwner);
+
+        const pickedCardCommand = new PickedCardCommand(userService, cardService, serverSocket, {
+          cardId: testCard.id,
+          previousOwnerId: previousOwnerId,
+          newOwnerId: newOwnerId,
+        });
+
+        pickedCardCommand.execute();
+      }).toThrow(CardNotInHandException);
+      done();
+    });
+
+    test('should throw CardNotFoundException when providing non-existing cardId', (done) => {
+      expect(() => {
+        const previousOwnerId = randomUUID();
+        const newOwnerId = randomUUID();
+
+        const previousOwner = new Player(previousOwnerId, 'test-1');
+        const newOwner = new Player(newOwnerId, 'test-2');
+
+        userService.save(previousOwner);
+        userService.save(newOwner);
+
+        const pickedCardCommand = new PickedCardCommand(userService, cardService, serverSocket, {
+          cardId: randomUUID(),
+          previousOwnerId: previousOwnerId,
+          newOwnerId: newOwnerId,
+        });
+
+        pickedCardCommand.execute();
+      }).toThrow(CardNotFoundException);
       done();
     });
   });
@@ -205,7 +307,7 @@ describe('SocketHandler', () => {
     test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
       expect(() => {
         const leaveLobbyCommand = new LeaveLobbyCommand(userService, lobbyService, serverSocket, {
-          lobbyId: 'non-uuid-id',
+          lobbyId: 'non-uuid-id' as UUID,
         });
 
         leaveLobbyCommand.execute();
@@ -340,7 +442,7 @@ describe('SocketHandler', () => {
       const mockOn = jest.spyOn(io, 'on');
       const mockSocketOn = jest.spyOn(serverSocket, 'on');
 
-      const socketHandler = new SocketHandler(io, userService, lobbyService);
+      const socketHandler = new SocketHandler(io, userService, lobbyService, cardService);
       socketHandler.handleConnection();
 
       expect(mockOn).toHaveBeenCalledWith('connection', expect.any(Function));
@@ -356,12 +458,13 @@ describe('SocketHandler', () => {
       expect(mockSocketOn).toHaveBeenCalledWith('LeaveLobby', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('SendMessage', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('UserReady', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('PickedCard', expect.any(Function));
 
       done();
     });
 
     test('should reject connection if no API key is provided', () => {
-      const socketHandler = new SocketHandler(io, userService, lobbyService);
+      const socketHandler = new SocketHandler(io, userService, lobbyService, cardService);
       const mockUse = jest.spyOn(io, 'use');
       const mockNext = jest.fn();
       const mockSocket = {
@@ -380,7 +483,7 @@ describe('SocketHandler', () => {
     });
 
     test('should reject connection if invalid API key is provided', () => {
-      const socketHandler = new SocketHandler(io, userService, lobbyService);
+      const socketHandler = new SocketHandler(io, userService, lobbyService, cardService);
       const mockUse = jest.spyOn(io, 'use');
       const mockNext = jest.fn();
       const mockSocket = {
@@ -402,7 +505,7 @@ describe('SocketHandler', () => {
 
     describe('setCommands', () => {
       test('should set the commands', () => {
-        const socketHandler = new SocketHandler(io, userService, lobbyService);
+        const socketHandler = new SocketHandler(io, userService, lobbyService, cardService);
         const commands = {
           UserConnect: jest.fn(),
           CreateLobby: jest.fn(),
@@ -417,7 +520,7 @@ describe('SocketHandler', () => {
 
     describe('handleSocketError', () => {
       test('should log the error message and emit an error event', () => {
-        const socketHandler = new SocketHandler(io, userService, lobbyService);
+        const socketHandler = new SocketHandler(io, userService, lobbyService, cardService);
         const mockSocket: any = {
           emit: jest.fn(),
           disconnect: jest.fn(),

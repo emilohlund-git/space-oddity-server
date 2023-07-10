@@ -9,9 +9,11 @@ import MessageResponse from '../domain/interfaces/MessageResponse';
 import { ClientEvents, ServerEvents } from '../domain/interfaces/command.interface';
 import * as middlewares from '../domain/middlewares';
 import api from '../infrastructure/api';
+import { InMemoryCardRepository } from '../infrastructure/repositories/in-memory-card.repository';
 import { InMemoryLobbyRepository } from '../infrastructure/repositories/in-memory-lobby.repository';
 import { InMemoryUserRepository } from '../infrastructure/repositories/in-memory-user.repository';
 import SocketHandler from '../infrastructure/socket.handler';
+import { CardService } from './services/card.service';
 import { LobbyService } from './services/lobby.service';
 import { UserService } from './services/user.service';
 
@@ -44,12 +46,14 @@ app.use('/api/v1', api);
 app.use(middlewares.notFound);
 app.use(middlewares.errorHandler);
 
+const cardRepository = new InMemoryCardRepository();
 const userRepository = new InMemoryUserRepository();
 const lobbyRepository = new InMemoryLobbyRepository();
+const cardService = new CardService(cardRepository);
 const userService = new UserService(userRepository);
 const lobbyService = new LobbyService(lobbyRepository);
 
-const socketHandler = new SocketHandler(io, userService, lobbyService);
+const socketHandler = new SocketHandler(io, userService, lobbyService, cardService);
 
 socketHandler.handleConnection();
 

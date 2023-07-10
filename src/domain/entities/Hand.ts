@@ -1,21 +1,10 @@
 import Card from './Card';
-import Player from './Player';
 
 class Hand {
-  private player: Player | undefined;
-
   private cards: Card[];
 
   constructor() {
     this.cards = [];
-  }
-
-  public getPlayer(): Player | undefined {
-    return this.player;
-  }
-
-  public setPlayer(player: Player) {
-    this.player = player;
   }
 
   public getCards(): Card[] {
@@ -23,12 +12,10 @@ class Hand {
   }
 
   public addCard(card: Card): void {
-    card.setOwner(this.player);
     this.cards.push(card);
   }
 
   public addCards(cards: Card[]): void {
-    cards.forEach((c) => c.setOwner(this.player));
     this.cards.push(...cards);
   }
 
