@@ -1,21 +1,19 @@
-import { UUID } from 'crypto';
+import { UUID, randomUUID } from 'crypto';
 import Deck from './Deck';
 import Player from './Player';
 
 export class Lobby {
+  public id: UUID = randomUUID();
+
   private users: Player[] = [];
 
-  private deck: Deck;
-
-  constructor(public readonly id: UUID, deck: Deck) {
-    this.deck = deck;
-  }
+  private deck?: Deck;
 
   public setDeck(deck: Deck): void {
     this.deck = deck;
   }
 
-  public getDeck(): Deck {
+  public getDeck(): Deck | undefined {
     return this.deck;
   }
 

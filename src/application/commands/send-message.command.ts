@@ -1,8 +1,8 @@
 import { UUID } from 'crypto';
 import type { Socket } from 'socket.io';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import InvalidPayloadException from '../exceptions/invalid-payload.exception';
-import { isValidUUID } from '../utils/uuid.validator';
+import GameService from '../services/game.service';
+import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type SendMessagePayload = {
   userId: string;
@@ -12,6 +12,7 @@ export type SendMessagePayload = {
 
 class SendMessageCommand implements Command {
   constructor(
+    private readonly gameService: GameService,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: SendMessagePayload,
   ) { }
@@ -19,10 +20,8 @@ class SendMessageCommand implements Command {
   execute(): void {
     const { userId, lobbyId, message } = this.payload;
 
-    // Validate input
-    if (!userId || typeof userId !== 'string' || !lobbyId || !isValidUUID(lobbyId) || !message || typeof message !== 'string') {
-      throw new InvalidPayloadException('Invalid payload: username must be a non-empty string.');
-    }
+    const payloadValidationRules = createPayloadValidationRules(this.payload);
+    validatePayload(this.payload, payloadValidationRules);
 
     this.socket.emit('MessageSent', userId, lobbyId, message);
   }

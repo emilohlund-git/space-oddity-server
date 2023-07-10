@@ -203,7 +203,8 @@ describe('Entities', () => {
       const oldDeck = new Deck();
       const newDeck = new Deck();
 
-      const lobby = new Lobby(randomUUID(), oldDeck);
+      const lobby = new Lobby();
+      lobby.setDeck(oldDeck);
 
       expect(lobby.getDeck()).toBe(oldDeck);
 
@@ -216,7 +217,7 @@ describe('Entities', () => {
 
     test('should add a user to the lobby and then remove it', (done) => {
       const userId = randomUUID();
-      const lobby = new Lobby(randomUUID(), new Deck());
+      const lobby = new Lobby();
       expect(lobby.getPlayers().length).toBe(0);
       const testUser = new Player(userId, 'test');
       lobby.addUser(testUser);

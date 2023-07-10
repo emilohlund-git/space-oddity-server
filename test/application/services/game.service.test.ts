@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { CardService } from '../../../src/application/services/card.service';
 import { DeckService } from '../../../src/application/services/deck.service';
 import GameService from '../../../src/application/services/game.service';
@@ -18,7 +17,6 @@ import { InMemoryDeckRepository } from '../../../src/infrastructure/repositories
 import { InMemoryLobbyRepository } from '../../../src/infrastructure/repositories/in-memory-lobby.repository';
 import { InMemoryTableRepository } from '../../../src/infrastructure/repositories/in-memory-table.repository';
 import { InMemoryUserRepository } from '../../../src/infrastructure/repositories/in-memory-user.repository';
-import { getShuffledDeck } from '../../utils/test.utils';
 
 describe('GameService', () => {
   let cardRepository: CardRepository;
@@ -45,10 +43,8 @@ describe('GameService', () => {
     lobbyService = new LobbyService(lobbyRepository);
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
-    gameState = new GameState(
-      new Lobby(randomUUID(), getShuffledDeck()),
-      new Table(),
-    );
+    gameState = new GameState(new Table());
+    gameState.setLobby(new Lobby());
     gameService = new GameService(
       userService,
       cardService,
