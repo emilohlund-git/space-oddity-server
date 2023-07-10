@@ -1,5 +1,5 @@
 import type { Socket } from 'socket.io';
-import { User } from '../../domain/entities/User';
+import Player from '../../domain/entities/Player';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import FailedUserConnectionException from '../exceptions/failed-user-connection.exception';
 import InvalidPayloadException from '../exceptions/invalid-payload.exception';
@@ -30,7 +30,7 @@ class UserConnectCommand implements Command {
       throw new FailedUserConnectionException(`👋 User: ${this.socket.id} already exists.`);
     }
 
-    const userToCreate = new User(this.socket.id, this.payload.username);
+    const userToCreate = new Player(this.socket.id, this.payload.username);
 
     this.userService.save(userToCreate);
     const userCreated = this.userService.findById(this.socket.id);

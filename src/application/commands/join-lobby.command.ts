@@ -1,3 +1,4 @@
+import { UUID } from 'crypto';
 import type { Socket } from 'socket.io';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import InvalidPayloadException from '../exceptions/invalid-payload.exception';
@@ -8,7 +9,7 @@ import { UserService } from '../services/user.service';
 import { isValidUUID } from '../utils/uuid.validator';
 
 export type JoinLobbyPayload = {
-  lobbyId: string;
+  lobbyId: UUID;
 };
 
 class JoinLobbyCommand implements Command {

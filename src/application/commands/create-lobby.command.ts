@@ -1,5 +1,6 @@
-import { randomUUID } from 'crypto';
+import { UUID, randomUUID } from 'crypto';
 import type { Socket } from 'socket.io';
+import Deck from '../../domain/entities/Deck';
 import { Lobby } from '../../domain/entities/Lobby';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import InvalidPayloadException from '../exceptions/invalid-payload.exception';
@@ -10,7 +11,8 @@ import { UserService } from '../services/user.service';
 import { isValidUUID } from '../utils/uuid.validator';
 
 export type CreateLobbyPayload = {
-  lobbyId: string;
+  lobbyId: UUID;
+  deck: Deck;
 };
 
 class CreateLobbyCommand implements Command {
@@ -20,11 +22,12 @@ class CreateLobbyCommand implements Command {
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: CreateLobbyPayload = {
       lobbyId: randomUUID(),
+      deck: new Deck(),
     },
   ) { }
 
   execute(): void {
-    const { lobbyId } = this.payload;
+    const { lobbyId, deck } = this.payload;
 
     // Validate input
     if (!lobbyId || !isValidUUID(lobbyId)) {
@@ -43,7 +46,7 @@ class CreateLobbyCommand implements Command {
       throw new LobbyExistsException(`Lobby already exists with ID: ${lobbyId}`);
     }
 
-    const lobby = new Lobby(lobbyId);
+    const lobby = new Lobby(lobbyId, deck);
     lobby.addUser(user);
     this.lobbyService.save(lobby);
     this.socket.emit('LobbyCreated', lobby);

@@ -1,7 +1,10 @@
+import { UUID, randomUUID } from 'crypto';
 import InsufficientCardsException from '../../application/exceptions/insufficient-cards.exception';
 import Card from './Card';
 
 class Deck {
+  public id: UUID = randomUUID();
+
   private cards: Card[];
 
   constructor() {
