@@ -1,6 +1,9 @@
+import { UUID, randomUUID } from 'crypto';
 import Card from './Card';
 
 class Table {
+  public id: UUID = randomUUID();
+
   private disposedCards: Card[];
 
   constructor() {

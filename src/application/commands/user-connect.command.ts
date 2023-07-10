@@ -2,8 +2,8 @@ import type { Socket } from 'socket.io';
 import Player from '../../domain/entities/Player';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import FailedUserConnectionException from '../exceptions/failed-user-connection.exception';
-import InvalidPayloadException from '../exceptions/invalid-payload.exception';
-import { UserService } from '../services/user.service';
+import GameService from '../services/game.service';
+import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type UserConnectPayload = {
   username: string;
@@ -11,7 +11,7 @@ export type UserConnectPayload = {
 
 class UserConnectCommand implements Command {
   constructor(
-    private readonly userService: UserService,
+    private readonly gameService: GameService,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: UserConnectPayload,
   ) { }
@@ -19,21 +19,19 @@ class UserConnectCommand implements Command {
   execute(): void {
     const { username } = this.payload;
 
-    // Validate input
-    if (!username || typeof username !== 'string') {
-      throw new InvalidPayloadException('Invalid payload: username must be a non-empty string.');
-    }
+    const payloadValidationRules = createPayloadValidationRules(this.payload);
+    validatePayload(this.payload, payloadValidationRules);
 
-    const userExists = this.userService.findById(this.socket.id);
+    const userExists = this.gameService.getUserService().findById(this.socket.id);
 
     if (userExists) {
       throw new FailedUserConnectionException(`👋 User: ${this.socket.id} already exists.`);
     }
 
-    const userToCreate = new Player(this.socket.id, this.payload.username);
+    const userToCreate = new Player(this.socket.id, username);
 
-    this.userService.save(userToCreate);
-    const userCreated = this.userService.findById(this.socket.id);
+    this.gameService.getUserService().save(userToCreate);
+    const userCreated = this.gameService.getUserService().findById(this.socket.id);
 
     if (!userCreated) {
       throw new FailedUserConnectionException(`👋 Failed to connect User: ${this.socket.id}.`);

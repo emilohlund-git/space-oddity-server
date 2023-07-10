@@ -1,3 +1,4 @@
+import { UUID } from 'crypto';
 import type { Socket } from 'socket.io';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import InvalidPayloadException from '../exceptions/invalid-payload.exception';
@@ -5,7 +6,7 @@ import { isValidUUID } from '../utils/uuid.validator';
 
 export type SendMessagePayload = {
   userId: string;
-  lobbyId: string;
+  lobbyId: UUID;
   message: string;
 };
 

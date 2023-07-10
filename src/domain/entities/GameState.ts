@@ -1,4 +1,6 @@
-import Deck from './Deck';
+import GameNotInProgressException from '../../application/exceptions/game-not-in-progress.exception';
+import Card from './Card';
+import { Lobby } from './Lobby';
 import Player from './Player';
 import Table from './Table';
 
@@ -8,51 +10,80 @@ enum GameStatus {
   Ended = 'ended',
 }
 
+export enum Lights {
+  RED = 'red',
+  BLUE = 'blue',
+}
+
 class GameState {
-  public players: Player[];
-
   public table: Table;
-
-  public deck: Deck;
 
   public currentPlayerIndex: number;
 
   public gameStatus: GameStatus;
 
-  constructor(players: Player[], table: Table, deck: Deck) {
-    this.players = players;
+  public light: Lights;
+
+  public lobby: Lobby;
+
+  constructor(lobby: Lobby, table: Table) {
+    this.lobby = lobby;
     this.table = table;
-    this.deck = deck;
     this.currentPlayerIndex = 0;
     this.gameStatus = GameStatus.NotStarted;
+    this.light = Lights.RED;
   }
 
   public startGame(): void {
     // Distribute initial cards to players
-    this.players.forEach((player) => {
-      const initialCards = this.deck.drawCards(5);
-      player.getHand().addCards(initialCards);
-    });
+    this.lobby.getDeck().distributeCardsToPlayers(this.lobby.getPlayers());
+
+    // Find the player with the least amount of cards
+    const players = this.lobby.getPlayers();
+
+    let playerWithLeastCards = players[0];
+    for (const player of players) {
+      if (player.getHand().getCards().length <
+        playerWithLeastCards.getHand().getCards().length) {
+        playerWithLeastCards = player;
+      }
+    }
+
+    // Set the currentPlayerIndex to the index of the player with the least amount of cards
+    this.currentPlayerIndex = players.findIndex((player) => player === playerWithLeastCards);
 
     this.gameStatus = GameStatus.InProgress;
   }
 
   public nextTurn(): void {
     if (this.gameStatus !== GameStatus.InProgress) {
-      throw new Error('Game is not in progress');
+      throw new GameNotInProgressException('Game is not in progress');
     }
 
     // Move to the next player's turn
-    this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+    this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.lobby.getPlayers().length;
+  }
+
+  public transferCard(sourcePlayer: Player, targetPlayer: Player, card: Card): void {
+    if (this.gameStatus !== GameStatus.InProgress) {
+      throw new GameNotInProgressException('Game is not in progress');
+    }
+
+    const sourceHand = sourcePlayer.getHand();
+    const targetHand = targetPlayer.getHand();
+
+    sourceHand.removeCard(card);
+    card.setOwner(targetPlayer);
+    targetHand.addCard(card);
   }
 
   public getCurrentPlayer(): Player {
-    return this.players[this.currentPlayerIndex];
+    return this.lobby.getPlayers()[this.currentPlayerIndex];
   }
 
   public isGameOver(): boolean {
     // Game over condition: Any player has an empty hand
-    return this.players.some((player) => player.getHand().getCards().length === 0);
+    return this.lobby.getPlayers().some((player) => player.getHand().getCards().length === 0);
   }
 
   public endGame(): void {

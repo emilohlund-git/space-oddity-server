@@ -2,10 +2,12 @@ import type { Socket } from 'socket.io';
 import { JoinLobbyPayload } from '../../application/commands/join-lobby.command';
 import { LeaveLobbyPayload } from '../../application/commands/leave-lobby.command';
 import { PickedCardPayload } from '../../application/commands/picked-card.command';
+import { PlayedCardPayload } from '../../application/commands/played-card.command';
 import { SendMessagePayload } from '../../application/commands/send-message.command';
 import { UserConnectPayload } from '../../application/commands/user-connect.command';
 import { UserReadyPayload } from '../../application/commands/user-ready.command';
 import { Lobby } from '../entities/Lobby';
+import { SpecialEffect } from '../entities/TwistedCard';
 import { User } from '../entities/User';
 
 export type ClientEvents = {
@@ -16,6 +18,7 @@ export type ClientEvents = {
   SendMessage: (payload: SendMessagePayload) => void;
   UserReady: (payload: UserReadyPayload) => void;
   PickedCard: (payload: PickedCardPayload) => void;
+  PlayedCard: (payload: PlayedCardPayload) => void;
 };
 
 export type ServerEvents = {
@@ -26,6 +29,7 @@ export type ServerEvents = {
   MessageSent: (lobbyId: string, userId: string, message: string) => void;
   UserReady: (lobbyId: string, userId: string) => void;
   PickedCard: (cardId: string, userId: string) => void;
+  PlayedCard: (cardEffect: SpecialEffect, userId: string, targetUserId?: string) => void;
 };
 
 export interface Command {

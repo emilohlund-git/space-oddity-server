@@ -1,14 +1,15 @@
+import { UUID } from 'crypto';
 import Card from '../../domain/entities/Card';
 import { CardRepository } from '../../domain/repositories/card-repository.interface';
 
 export class InMemoryCardRepository implements CardRepository {
-  private cards: Map<string, Card>;
+  private cards: Map<UUID, Card>;
 
   constructor() {
-    this.cards = new Map<string, Card>();
+    this.cards = new Map<UUID, Card>();
   }
 
-  findByPlayer(userId: string): Card | undefined {
+  findByPlayer(userId: UUID): Card | undefined {
     return Array.from(this.cards.values()).find((c) => c.getOwner()?.getId() === userId);
   }
 
@@ -16,7 +17,7 @@ export class InMemoryCardRepository implements CardRepository {
     this.cards.set(card.id, card);
   }
 
-  findById(id: string): Card | undefined {
+  findById(id: UUID): Card | undefined {
     return this.cards.get(id);
   }
 
@@ -25,7 +26,7 @@ export class InMemoryCardRepository implements CardRepository {
   }
 
   clear() {
-    this.cards = new Map<string, Card>();
+    this.cards = new Map<UUID, Card>();
   }
 
   // Implement other methods as needed

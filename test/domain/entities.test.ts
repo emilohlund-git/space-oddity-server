@@ -7,8 +7,8 @@ import Deck from '../../src/domain/entities/Deck';
 import Hand from '../../src/domain/entities/Hand';
 import { Lobby } from '../../src/domain/entities/Lobby';
 import Player from '../../src/domain/entities/Player';
+import Table from '../../src/domain/entities/Table';
 import TwistedCard, { SpecialEffect } from '../../src/domain/entities/TwistedCard';
-import { User } from '../../src/domain/entities/User';
 
 describe('Entities', () => {
   let cards: Card[];
@@ -18,7 +18,7 @@ describe('Entities', () => {
   beforeAll((done) => {
     cards = <Card[]>[];
     cards.push(new TwistedCard('', SpecialEffect.SneakAPeak));
-    cards.push(new TwistedCard('', SpecialEffect.SwapDeck));
+    cards.push(new TwistedCard('', SpecialEffect.SwapHand));
     cards.push(new TwistedCard('', SpecialEffect.SwitchLight));
     cards.push(new BlackHoleCard(''));
     cards.push(new BlackHoleCard(''));
@@ -33,6 +33,22 @@ describe('Entities', () => {
     deck.shuffle();
 
     done();
+  });
+
+  describe('Table', () => {
+    test('should dispose a card and then return a list of all disposed cards, then clear', (done) => {
+      const table = new Table();
+      const card = new Card('test');
+      table.disposeCard(card);
+
+      expect(table.getDisposedCards()[0]).toBe(card);
+
+      table.clearTable();
+
+      expect(table.getDisposedCards().length).toBe(0);
+
+      done();
+    });
   });
 
   describe('Card', () => {
@@ -92,7 +108,7 @@ describe('Entities', () => {
         }
 
         cards.push(new TwistedCard('', SpecialEffect.SneakAPeak));
-        cards.push(new TwistedCard('', SpecialEffect.SwapDeck));
+        cards.push(new TwistedCard('', SpecialEffect.SwapHand));
         cards.push(new TwistedCard('', SpecialEffect.SwitchLight));
         cards.push(new BlackHoleCard(''));
         cards.push(new BlackHoleCard(''));
@@ -201,12 +217,12 @@ describe('Entities', () => {
     test('should add a user to the lobby and then remove it', (done) => {
       const userId = randomUUID();
       const lobby = new Lobby(randomUUID(), new Deck());
-      expect(lobby.getUsers().length).toBe(0);
-      const testUser = new User(userId, 'test');
+      expect(lobby.getPlayers().length).toBe(0);
+      const testUser = new Player(userId, 'test');
       lobby.addUser(testUser);
-      expect(lobby.getUsers().length).toBe(1);
+      expect(lobby.getPlayers().length).toBe(1);
       lobby.removeUser(userId);
-      expect(lobby.getUsers().length).toBe(0);
+      expect(lobby.getPlayers().length).toBe(0);
       done();
     });
   });

@@ -3,7 +3,7 @@ import Player from './Player';
 
 export enum SpecialEffect {
   SneakAPeak,
-  SwapDeck,
+  SwapHand,
   SwitchLight,
 }
 
