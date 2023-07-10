@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { Server, Socket } from 'socket.io';
+import ChangeTurnCommand from '../application/commands/change-turn.command';
 import CreateLobbyCommand from '../application/commands/create-lobby.command';
 import JoinLobbyCommand from '../application/commands/join-lobby.command';
 import LeaveLobbyCommand from '../application/commands/leave-lobby.command';
@@ -38,6 +39,7 @@ class SocketHandler {
     this.registerCommand('UserReady', UserReadyCommand);
     this.registerCommand('PickedCard', PickedCardCommand, this.gameService);
     this.registerCommand('PlayedCard', PlayedCardCommand, this.gameService);
+    this.registerCommand('ChangeTurn', ChangeTurnCommand, this.gameService);
   }
 
   public registerCommand<T extends Command>(

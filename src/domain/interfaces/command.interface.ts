@@ -1,4 +1,5 @@
 import type { Socket } from 'socket.io';
+import { ChangeTurnPayload } from '../../application/commands/change-turn.command';
 import { JoinLobbyPayload } from '../../application/commands/join-lobby.command';
 import { LeaveLobbyPayload } from '../../application/commands/leave-lobby.command';
 import { PickedCardPayload } from '../../application/commands/picked-card.command';
@@ -19,6 +20,7 @@ export type ClientEvents = {
   UserReady: (payload: UserReadyPayload) => void;
   PickedCard: (payload: PickedCardPayload) => void;
   PlayedCard: (payload: PlayedCardPayload) => void;
+  ChangeTurn: (payload: ChangeTurnPayload) => void;
 };
 
 export type ServerEvents = {
@@ -30,6 +32,7 @@ export type ServerEvents = {
   UserReady: (lobbyId: string, userId: string) => void;
   PickedCard: (cardId: string, userId: string) => void;
   PlayedCard: (cardEffect: SpecialEffect, userId: string, targetUserId?: string) => void;
+  ChangeTurn: (userId: string) => void;
 };
 
 export interface Command {
