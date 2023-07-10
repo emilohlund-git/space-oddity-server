@@ -33,19 +33,37 @@ class SocketHandler {
     this.userService = userService;
     this.lobbyService = lobbyService;
     this.commands = {
-      UserConnect: (socket, payload: UserConnectPayload) =>
-        new UserConnectCommand(this.userService, socket, payload),
-      CreateLobby: (socket, payload: CreateLobbyPayload) =>
-        new CreateLobbyCommand(this.userService, this.lobbyService, socket, payload),
-      JoinLobby: (socket, payload: JoinLobbyPayload) =>
-        new JoinLobbyCommand(this.userService, this.lobbyService, socket, payload),
-      LeaveLobby: (socket, payload: LeaveLobbyPayload) =>
-        new LeaveLobbyCommand(this.userService, this.lobbyService, socket, payload),
-      SendMessage: (socket, payload: SendMessagePayload) =>
-        new SendMessageCommand(socket, payload),
-      UserReady: (socket, payload: UserReadyPayload) =>
-        new UserReadyCommand(socket, payload),
+      UserConnect: this.createUserConnectCommand.bind(this),
+      CreateLobby: this.createCreateLobbyCommand.bind(this),
+      JoinLobby: this.createJoinLobbyCommand.bind(this),
+      LeaveLobby: this.createLeaveLobbyCommand.bind(this),
+      SendMessage: this.createSendMessageCommand.bind(this),
+      UserReady: this.createUserReadyCommand.bind(this),
     };
+  }
+
+  private createUserConnectCommand(socket: Socket, payload: UserConnectPayload): Command {
+    return new UserConnectCommand(this.userService, socket, payload);
+  }
+
+  private createCreateLobbyCommand(socket: Socket, payload: CreateLobbyPayload): Command {
+    return new CreateLobbyCommand(this.userService, this.lobbyService, socket, payload);
+  }
+
+  private createJoinLobbyCommand(socket: Socket, payload: JoinLobbyPayload): Command {
+    return new JoinLobbyCommand(this.userService, this.lobbyService, socket, payload);
+  }
+
+  private createLeaveLobbyCommand(socket: Socket, payload: LeaveLobbyPayload): Command {
+    return new LeaveLobbyCommand(this.userService, this.lobbyService, socket, payload);
+  }
+
+  private createSendMessageCommand(socket: Socket, payload: SendMessagePayload): Command {
+    return new SendMessageCommand(socket, payload);
+  }
+
+  private createUserReadyCommand(socket: Socket, payload: UserReadyPayload): Command {
+    return new UserReadyCommand(socket, payload);
   }
 
   public getCommands(): Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: any) => Command> {
@@ -91,7 +109,7 @@ class SocketHandler {
     });
   }
 
-  private handleSocketError(error: any, socket: Socket): void {
+  public handleSocketError(error: any, socket: Socket): void {
     logger.error(`Socket error occurred: ${error.message}`);
     socket.emit('error', error.message);
     socket.disconnect(true);

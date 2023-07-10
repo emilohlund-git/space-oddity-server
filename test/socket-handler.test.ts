@@ -359,5 +359,77 @@ describe('SocketHandler', () => {
 
       done();
     });
+
+    test('should reject connection if no API key is provided', () => {
+      const socketHandler = new SocketHandler(io, userService, lobbyService);
+      const mockUse = jest.spyOn(io, 'use');
+      const mockNext = jest.fn();
+      const mockSocket = {
+        handshake: {
+          headers: {},
+        },
+      } as any;
+
+      socketHandler.handleConnection();
+
+      // Simulate the 'use' middleware by calling the registered 'use' middleware function manually
+      const useMiddleware = mockUse.mock.calls[0][0];
+      useMiddleware(mockSocket, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(new Error('🌎 Connection rejected: No API key'));
+    });
+
+    test('should reject connection if invalid API key is provided', () => {
+      const socketHandler = new SocketHandler(io, userService, lobbyService);
+      const mockUse = jest.spyOn(io, 'use');
+      const mockNext = jest.fn();
+      const mockSocket = {
+        handshake: {
+          headers: {
+            'x-api-key': 'invalid-api-key',
+          },
+        },
+      } as any;
+
+      socketHandler.handleConnection();
+
+      // Simulate the 'use' middleware by calling the registered 'use' middleware function manually
+      const useMiddleware = mockUse.mock.calls[0][0];
+      useMiddleware(mockSocket, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(new Error('🌎 Connection rejected: Invalid API key'));
+    });
+
+    describe('setCommands', () => {
+      test('should set the commands', () => {
+        const socketHandler = new SocketHandler(io, userService, lobbyService);
+        const commands = {
+          UserConnect: jest.fn(),
+          CreateLobby: jest.fn(),
+          JoinLobby: jest.fn(),
+        };
+
+        socketHandler.setCommands(commands);
+
+        expect(socketHandler.getCommands()).toEqual(commands);
+      });
+    });
+
+    describe('handleSocketError', () => {
+      test('should log the error message and emit an error event', () => {
+        const socketHandler = new SocketHandler(io, userService, lobbyService);
+        const mockSocket: any = {
+          emit: jest.fn(),
+          disconnect: jest.fn(),
+        };
+        const mockError = new Error('Test error');
+
+        socketHandler.handleSocketError(mockError, mockSocket);
+
+        expect(mockSocket.emit).toHaveBeenCalledWith('error', mockError.message);
+        expect(mockSocket.disconnect).toHaveBeenCalledWith(true);
+      });
+    });
+
   });
 });
