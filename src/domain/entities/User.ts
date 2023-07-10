@@ -1,3 +1,10 @@
 export class User {
-  constructor(public readonly id: string, public readonly username: string, public readonly lobby?: string) { }
+  public id: string;
+
+  public username: string;
+
+  constructor(id: string, username: string, public readonly lobby?: string) {
+    this.id = id;
+    this.username = username;
+  }
 }

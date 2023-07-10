@@ -1,48 +1,29 @@
-import { UUID, randomUUID } from 'crypto';
 import type { Socket } from 'socket.io';
-import Deck from '../../domain/entities/Deck';
+import { getShuffledDeck } from '../../../test/utils/test.utils';
 import { Lobby } from '../../domain/entities/Lobby';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import LobbyExistsException from '../exceptions/lobby-exists.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
-export type CreateLobbyPayload = {
-  lobbyId: UUID;
-  deck: Deck;
-};
+export type CreateLobbyPayload = {};
 
 class CreateLobbyCommand implements Command {
   constructor(
     private readonly gameService: GameService,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: CreateLobbyPayload = {
-      lobbyId: randomUUID(),
-      deck: new Deck(),
-    },
+    private readonly payload?: CreateLobbyPayload,
   ) { }
 
   execute(): void {
-    const { lobbyId, deck } = this.payload;
-
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
-
     const user = this.gameService.getUserService().findById(this.socket.id);
 
     if (!user) {
       throw new UserNotFoundException(`User not found with ID: ${this.socket.id}`);
     }
 
-    const lobbyExists = this.gameService.getLobbyService().findById(lobbyId);
-
-    if (lobbyExists) {
-      throw new LobbyExistsException(`Lobby already exists with ID: ${lobbyId}`);
-    }
-
-    const lobby = new Lobby(lobbyId, deck);
+    const lobby = new Lobby();
     lobby.addUser(user);
+    lobby.setDeck(getShuffledDeck());
     this.gameService.getLobbyService().save(lobby);
     this.socket.emit('LobbyCreated', lobby);
   }

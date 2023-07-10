@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io';
 import GameService from '../../application/services/game.service';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../exceptions/no-players-in-game.exception';
 import NotYourTurnException from '../exceptions/not-your-turn.exception';
 
@@ -15,6 +16,10 @@ class ChangeTurnCommand implements Command {
 
   public execute(): void {
     const gameState = this.gameService.getGameState();
+
+    if (!gameState.lobby) {
+      throw new LobbyNotFoundException('Lobby does not exist for GameState');
+    }
 
     // Validate the game state
     if (gameState.lobby.getPlayers().length === 0) {

@@ -1,4 +1,3 @@
-import { randomUUID } from 'crypto';
 import { createServer } from 'http';
 import { Server, Socket as ServerSocket } from 'socket.io';
 import Client, { Socket as ClientSocket } from 'socket.io-client';
@@ -54,10 +53,10 @@ describe('GameScenarios', () => {
     lobbyService = new LobbyService(lobbyRepository);
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
-    gameState = new GameState(
-      new Lobby(randomUUID(), getShuffledDeck()),
-      new Table(),
-    );
+    gameState = new GameState(new Table());
+    const lobby = new Lobby();
+    lobby.setDeck(getShuffledDeck());
+    gameState.setLobby(lobby);
     gameService = new GameService(
       userService,
       cardService,
@@ -99,35 +98,35 @@ describe('GameScenarios', () => {
       gameService.getUserService().save(player2);
       gameService.getUserService().save(player3);
 
-      gameService.getGameState().lobby.addUser(player1);
-      gameService.getGameState().lobby.addUser(player2);
-      gameService.getGameState().lobby.addUser(player3);
+      gameService.getGameState().lobby?.addUser(player1);
+      gameService.getGameState().lobby?.addUser(player2);
+      gameService.getGameState().lobby?.addUser(player3);
 
       gameState.startGame();
     });
 
     it('should distribute cards to players', () => {
-      expect(player1.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby.getDeck().getCards().length / gameState.lobby.getPlayers().length);
-      expect(player2.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby.getDeck().getCards().length / gameState.lobby.getPlayers().length);
-      expect(player3.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby.getDeck().getCards().length / gameState.lobby.getPlayers().length);
+      expect(player1.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby!.getDeck()!.getCards().length / gameState.lobby!.getPlayers().length);
+      expect(player2.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby!.getDeck()!.getCards().length / gameState.lobby!.getPlayers().length);
+      expect(player3.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby!.getDeck()!.getCards().length / gameState.lobby!.getPlayers().length);
     });
 
     it('should be player3 who starts, and then change turn to player1, then player2...', () => {
-      const players = gameState.lobby.getPlayers();
-      expect(gameState.getCurrentPlayer().getUserName()).toBe(players[2].getUserName());
+      const players = gameState.lobby?.getPlayers();
+      expect(gameState.getCurrentPlayer().getUserName()).toBe(players![2].getUserName());
 
-      for (let i = 0; i < players.length; i++) {
+      for (let i = 0; i < players!.length; i++) {
         gameState.nextTurn();
-        expect(gameState.getCurrentPlayer().getUserName()).toBe(players[i].getUserName());
+        expect(gameState.getCurrentPlayer().getUserName()).toBe(players![i].getUserName());
       }
     });
 
     it('should throw GameNotInProgressException exception', () => {
       expect(() => {
         gameState.endGame();
-        const players = gameState.lobby.getPlayers();
-        const cardToTransfer = players[0].getHand().getCards()[0];
-        gameService.getGameState().transferCard(players[0], players[1], cardToTransfer);
+        const players = gameState.lobby?.getPlayers();
+        const cardToTransfer = players![0].getHand().getCards()[0];
+        gameService.getGameState().transferCard(players![0], players![1], cardToTransfer);
       }).toThrow(GameNotInProgressException);
     });
 
@@ -141,7 +140,7 @@ describe('GameScenarios', () => {
     it('should take a card from the next player', () => {
       gameState.startGame();
 
-      const players = gameState.lobby.getPlayers();
+      const players = gameState.lobby!.getPlayers();
       const cardToTransfer = players[0].getHand().getCards()[0];
 
       // Ensure the card exists in player1's hand before transfer
@@ -160,7 +159,7 @@ describe('GameScenarios', () => {
     });
 
     it('should end the game and return true', () => {
-      const winningPlayer = gameState.lobby.getPlayers()[0];
+      const winningPlayer = gameState.lobby!.getPlayers()[0];
 
       winningPlayer.setHand(new Hand());
 

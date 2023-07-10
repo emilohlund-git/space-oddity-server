@@ -1,4 +1,6 @@
+import DeckNotFoundException from '../../application/exceptions/deck-not-found.exception';
 import GameNotInProgressException from '../../application/exceptions/game-not-in-progress.exception';
+import LobbyNotFoundException from '../../application/exceptions/lobby-not-found.exception';
 import Card from './Card';
 import { Lobby } from './Lobby';
 import Player from './Player';
@@ -24,10 +26,9 @@ class GameState {
 
   public light: Lights;
 
-  public lobby: Lobby;
+  public lobby: Lobby | undefined;
 
-  constructor(lobby: Lobby, table: Table) {
-    this.lobby = lobby;
+  constructor(table: Table) {
     this.table = table;
     this.currentPlayerIndex = 0;
     this.gameStatus = GameStatus.NotStarted;
@@ -35,8 +36,14 @@ class GameState {
   }
 
   public startGame(): void {
+    if (!this.lobby) throw new LobbyNotFoundException('Lobby doesn\'t exist for GameState');
+
+    const deck = this.lobby.getDeck();
+
+    if (!deck) throw new DeckNotFoundException('Lobby doesn\'t contain a deck');
+
     // Distribute initial cards to players
-    this.lobby.getDeck().distributeCardsToPlayers(this.lobby.getPlayers());
+    deck.distributeCardsToPlayers(this.lobby.getPlayers());
 
     // Find the player with the least amount of cards
     const players = this.lobby.getPlayers();
@@ -60,6 +67,10 @@ class GameState {
       throw new GameNotInProgressException('Game is not in progress');
     }
 
+    if (!this.lobby) {
+      throw new LobbyNotFoundException('Lobby does not exist for GameState');
+    }
+
     // Move to the next player's turn
     this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.lobby.getPlayers().length;
   }
@@ -78,16 +89,32 @@ class GameState {
   }
 
   public getCurrentPlayer(): Player {
+    if (!this.lobby) {
+      throw new LobbyNotFoundException('Lobby does not exist for GameState');
+    }
+
     return this.lobby.getPlayers()[this.currentPlayerIndex];
   }
 
   public isGameOver(): boolean {
+    if (!this.lobby) {
+      throw new LobbyNotFoundException('Lobby does not exist for GameState');
+    }
+
     // Game over condition: Any player has an empty hand
     return this.lobby.getPlayers().some((player) => player.getHand().getCards().length === 0);
   }
 
   public endGame(): void {
     this.gameStatus = GameStatus.Ended;
+  }
+
+  public getLobby(): Lobby | undefined {
+    return this.lobby;
+  }
+
+  public setLobby(lobby: Lobby): void {
+    this.lobby = lobby;
   }
 }
 

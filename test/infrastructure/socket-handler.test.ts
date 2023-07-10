@@ -16,7 +16,6 @@ import CardNotFoundException from '../../src/application/exceptions/card-not-fou
 import CardNotInHandException from '../../src/application/exceptions/card-not-in-hand.exception';
 import FailedUserConnectionException from '../../src/application/exceptions/failed-user-connection.exception';
 import InvalidPayloadException from '../../src/application/exceptions/invalid-payload.exception';
-import LobbyExistsException from '../../src/application/exceptions/lobby-exists.exception';
 import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../../src/application/exceptions/no-players-in-game.exception';
 import NotYourTurnException from '../../src/application/exceptions/not-your-turn.exception';
@@ -48,6 +47,7 @@ import { InMemoryLobbyRepository } from '../../src/infrastructure/repositories/i
 import { InMemoryTableRepository } from '../../src/infrastructure/repositories/in-memory-table.repository';
 import { InMemoryUserRepository } from '../../src/infrastructure/repositories/in-memory-user.repository';
 import SocketHandler from '../../src/infrastructure/socket.handler';
+import { getShuffledDeck } from '../utils/test.utils';
 
 describe('SocketHandler', () => {
   let io: Server;
@@ -77,10 +77,7 @@ describe('SocketHandler', () => {
     lobbyService = new LobbyService(lobbyRepository);
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
-    gameState = new GameState(
-      new Lobby(randomUUID(), new Deck()),
-      new Table(),
-    );
+    gameState = new GameState(new Table());
     gameService = new GameService(
       userService,
       cardService,
@@ -142,37 +139,11 @@ describe('SocketHandler', () => {
         createLobbyCommand.execute();
       }).toThrow(UserNotFoundException);
     });
-
-    test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
-      expect(() => {
-        const createLobbyCommand = new CreateLobbyCommand(gameService, serverSocket, {
-          lobbyId: 'non-uuid-id' as UUID,
-          deck: new Deck(),
-        });
-
-        createLobbyCommand.execute();
-      }).toThrow(InvalidPayloadException);
-      done();
-    });
-
-    test('should throw LobbyExistsException when trying to create an existing lobby', (done) => {
-      const lobbies = lobbyService.findAll();
-
-      expect(() => {
-        const createLobbyCommand = new CreateLobbyCommand(gameService, serverSocket, {
-          lobbyId: lobbies[0].id,
-          deck: new Deck(),
-        });
-
-        createLobbyCommand.execute();
-      }).toThrow(LobbyExistsException);
-      done();
-    });
   });
 
   describe('JoinLobbyCommand', () => {
     test('should emit UserJoinedLobby event when valid payload is provided', (done) => {
-      const testLobby = new Lobby(randomUUID(), new Deck());
+      const testLobby = new Lobby();
       lobbyService.save(testLobby);
 
       const testUser = new Player(clientSocket.id, 'test', new Hand());
@@ -477,7 +448,7 @@ describe('SocketHandler', () => {
       const users = userService.findAll();
       const lobbies = lobbyService.findAll();
 
-      const sendMessageCommand = new SendMessageCommand(serverSocket, {
+      const sendMessageCommand = new SendMessageCommand(gameService, serverSocket, {
         userId: users[0].id,
         lobbyId: lobbies[0].id,
         message: 'test',
@@ -494,7 +465,7 @@ describe('SocketHandler', () => {
 
     test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
       expect(() => {
-        const sendMessageCommand = new SendMessageCommand(serverSocket, {
+        const sendMessageCommand = new SendMessageCommand(gameService, serverSocket, {
           lobbyId: 'non-uuid-id' as UUID,
           message: '1234',
           userId: 'non-uuid-id',
@@ -533,15 +504,22 @@ describe('SocketHandler', () => {
 
   describe('ChangeTurnCommand', () => {
     test('should emit ChangeTurn event when valid payload is provided', (done) => {
-      gameState.lobby.addUser(new Player(clientSocket.id, 'test'));
-      gameState.lobby.addUser(new Player('2345', 'test2'));
+      const player1 = new Player('1234', 'test');
+      const player2 = new Player(clientSocket.id, 'test2');
+
+      const lobby = new Lobby();
+      lobby.setDeck(getShuffledDeck());
+      gameState.setLobby(lobby);
+
+      gameState.lobby?.addUser(player1);
+      gameState.lobby?.addUser(player2);
       gameState.startGame();
 
       const userReadyCommand = new ChangeTurnCommand(gameService, serverSocket);
 
       clientSocket.on('ChangeTurn', (userId) => {
         expect(userId).toBeDefined();
-        expect(userId).toBe('2345');
+        expect(userId).toBe(player1.id);
         done();
       });
 
@@ -550,7 +528,11 @@ describe('SocketHandler', () => {
 
     test('should throw NotYourTurnException exception', (done) => {
       expect(() => {
-        gameState.lobby.addUser(new Player('1234', 'test'));
+        const lobby = new Lobby();
+        lobby.setDeck(getShuffledDeck());
+        gameState.setLobby(lobby);
+        gameState.lobby!.addUser(new Player('1234', 'test'));
+        gameState.startGame();
 
         const changeTurnCommand = new ChangeTurnCommand(gameService, serverSocket);
 
@@ -561,7 +543,7 @@ describe('SocketHandler', () => {
 
     test('should throw NoPlayersInGameException exception', (done) => {
       expect(() => {
-        gameState.lobby = new Lobby(randomUUID(), new Deck());
+        gameState.lobby = new Lobby();
 
         const changeTurnCommand = new ChangeTurnCommand(gameService, serverSocket);
 
@@ -773,7 +755,7 @@ describe('SocketHandler', () => {
       const users = userService.findAll();
       const lobbies = lobbyService.findAll();
 
-      const userReadyCommand = new UserReadyCommand(serverSocket, {
+      const userReadyCommand = new UserReadyCommand(gameService, serverSocket, {
         userId: users[0].id,
         lobbyId: lobbies[0].id,
       });

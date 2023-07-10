@@ -8,8 +8,8 @@ import { SendMessagePayload } from '../../application/commands/send-message.comm
 import { UserConnectPayload } from '../../application/commands/user-connect.command';
 import { UserReadyPayload } from '../../application/commands/user-ready.command';
 import { Lobby } from '../entities/Lobby';
+import Player from '../entities/Player';
 import { SpecialEffect } from '../entities/TwistedCard';
-import { User } from '../entities/User';
 
 export type ClientEvents = {
   UserConnect: (payload: UserConnectPayload) => void;
@@ -24,9 +24,9 @@ export type ClientEvents = {
 };
 
 export type ServerEvents = {
-  UserConnected: (user: User) => void;
+  UserConnected: (user: Player) => void;
   LobbyCreated: (lobby: Lobby) => void;
-  UserJoinedLobby: (lobbyId: string, user: User) => void;
+  UserJoinedLobby: (lobbyId: string, user: Player) => void;
   UserLeftLobby: (lobbyId: string, userId: string) => void;
   MessageSent: (lobbyId: string, userId: string, message: string) => void;
   UserReady: (lobbyId: string, userId: string) => void;

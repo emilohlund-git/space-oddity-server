@@ -35,8 +35,8 @@ class SocketHandler {
     this.registerCommand('CreateLobby', CreateLobbyCommand, this.gameService);
     this.registerCommand('JoinLobby', JoinLobbyCommand, this.gameService);
     this.registerCommand('LeaveLobby', LeaveLobbyCommand, this.gameService);
-    this.registerCommand('SendMessage', SendMessageCommand);
-    this.registerCommand('UserReady', UserReadyCommand);
+    this.registerCommand('SendMessage', SendMessageCommand, this.gameService);
+    this.registerCommand('UserReady', UserReadyCommand, this.gameService);
     this.registerCommand('PickedCard', PickedCardCommand, this.gameService);
     this.registerCommand('PlayedCard', PlayedCardCommand, this.gameService);
     this.registerCommand('ChangeTurn', ChangeTurnCommand, this.gameService);
@@ -79,10 +79,9 @@ class SocketHandler {
     this.io.on('connection', (socket: Socket) => {
       logger.info(`🌎 ${socket.id} has connected.`);
 
-
       Object.entries(this.commandFactory).forEach(([eventName, createCommand]) => {
         socket.on(eventName as keyof ClientEvents, (payload: any) => {
-          logger.info(`✨ User: ${socket.id} called Event: ${eventName} to perform command: ${createCommand.name}`);
+          logger.info(`✨ User: ${socket.id} called Event: ${eventName} with payload: ${payload}`);
 
           try {
             const command = createCommand(socket, payload);
