@@ -407,7 +407,7 @@ describe('SocketHandler', () => {
           UserConnect: jest.fn(),
           CreateLobby: jest.fn(),
           JoinLobby: jest.fn(),
-        };
+        } as any;
 
         socketHandler.setCommands(commands);
 
