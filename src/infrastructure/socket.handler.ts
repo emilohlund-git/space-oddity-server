@@ -4,6 +4,7 @@ import CreateLobbyCommand from '../application/commands/create-lobby.command';
 import JoinLobbyCommand from '../application/commands/join-lobby.command';
 import LeaveLobbyCommand from '../application/commands/leave-lobby.command';
 import PickedCardCommand from '../application/commands/picked-card.command';
+import PlayedCardCommand from '../application/commands/played-card.command';
 import SendMessageCommand from '../application/commands/send-message.command';
 import UserConnectCommand from '../application/commands/user-connect.command';
 import UserReadyCommand from '../application/commands/user-ready.command';
@@ -36,9 +37,10 @@ class SocketHandler {
     this.registerCommand('SendMessage', SendMessageCommand);
     this.registerCommand('UserReady', UserReadyCommand);
     this.registerCommand('PickedCard', PickedCardCommand, this.gameService);
+    this.registerCommand('PlayedCard', PlayedCardCommand, this.gameService);
   }
 
-  private registerCommand<T extends Command>(
+  public registerCommand<T extends Command>(
     eventName: keyof ClientEvents,
     commandClass: new (...args: any[]) => T,
     commandArgs?: GameService,

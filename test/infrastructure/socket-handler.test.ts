@@ -7,6 +7,7 @@ import CreateLobbyCommand from '../../src/application/commands/create-lobby.comm
 import JoinLobbyCommand from '../../src/application/commands/join-lobby.command';
 import LeaveLobbyCommand from '../../src/application/commands/leave-lobby.command';
 import PickedCardCommand from '../../src/application/commands/picked-card.command';
+import PlayedCardCommand from '../../src/application/commands/played-card.command';
 import SendMessageCommand from '../../src/application/commands/send-message.command';
 import UserConnectCommand from '../../src/application/commands/user-connect.command';
 import UserReadyCommand from '../../src/application/commands/user-ready.command';
@@ -16,6 +17,7 @@ import FailedUserConnectionException from '../../src/application/exceptions/fail
 import InvalidPayloadException from '../../src/application/exceptions/invalid-payload.exception';
 import LobbyExistsException from '../../src/application/exceptions/lobby-exists.exception';
 import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
+import TableNotFoundException from '../../src/application/exceptions/table-not-found.exception';
 import UserNotFoundException from '../../src/application/exceptions/user-not-found.exception';
 import { CardService } from '../../src/application/services/card.service';
 import { DeckService } from '../../src/application/services/deck.service';
@@ -25,11 +27,13 @@ import { TableService } from '../../src/application/services/table.service';
 import { UserService } from '../../src/application/services/user.service';
 import Card from '../../src/domain/entities/Card';
 import Deck from '../../src/domain/entities/Deck';
-import GameState from '../../src/domain/entities/GameState';
+import GameState, { Lights } from '../../src/domain/entities/GameState';
 import Hand from '../../src/domain/entities/Hand';
 import { Lobby } from '../../src/domain/entities/Lobby';
 import Player from '../../src/domain/entities/Player';
 import Table from '../../src/domain/entities/Table';
+import TwistedCard, { SpecialEffect } from '../../src/domain/entities/TwistedCard';
+import { Command } from '../../src/domain/interfaces/command.interface';
 import { CardRepository } from '../../src/domain/repositories/card-repository.interface';
 import { DeckRepository } from '../../src/domain/repositories/deck-repository.interface';
 import { LobbyRepository } from '../../src/domain/repositories/lobby-repository.interface';
@@ -231,15 +235,35 @@ describe('SocketHandler', () => {
       const testCard = new Card('');
       cardService.save(testCard);
 
+      const previousId = randomUUID();
+      const newId = randomUUID();
+
+      const previousOwner = new Player(previousId, 'test-1');
+      const newOwner = new Player(newId, 'test-2');
+
+      userService.save(previousOwner);
+      userService.save(newOwner);
+
       expect(() => {
         const pickedCardCommand = new PickedCardCommand(gameService, serverSocket, {
           cardId: testCard.id,
-          userPreviousId: 'abcd1234',
+          userPreviousId: previousId,
           userNewId: 'abcd1234',
         });
 
         pickedCardCommand.execute();
       }).toThrow(UserNotFoundException);
+
+      expect(() => {
+        const pickedCardCommand = new PickedCardCommand(gameService, serverSocket, {
+          cardId: testCard.id,
+          userPreviousId: 'abcd1234',
+          userNewId: newId,
+        });
+
+        pickedCardCommand.execute();
+      }).toThrow(UserNotFoundException);
+
       done();
     });
 
@@ -479,6 +503,228 @@ describe('SocketHandler', () => {
     });
   });
 
+  describe('registerCommand', () => {
+    test('should register a command in the commandFactory', () => {
+      // Create a mock command class and commandArgs
+      class MockCommand implements Command {
+        constructor(private commandArgs: GameService, private socket: ServerSocket, private payload: any) { }
+
+        execute(): void {
+          // Mock implementation
+        }
+      }
+
+      const mockCommandClass = MockCommand as any;
+      const mockCommandArgs = gameService;
+
+      // Register the command using the registerCommand method
+      const socketHandler = new SocketHandler(io, gameService);
+
+      socketHandler.registerCommand('CreateLobby', mockCommandClass, mockCommandArgs);
+
+      // Verify that the command is registered in the commandFactory
+      const commandFactory = socketHandler.getCommands();
+      expect(commandFactory.CreateLobby).toBeDefined();
+    });
+  });
+
+  describe('PlayedCardCommand', () => {
+    test('should switch the GameState light from red to blue', (done) => {
+      const player1 = new Player('abcd', 'player1');
+      const player2 = new Player('bcde', 'player2');
+
+      userService.save(player1);
+      userService.save(player2);
+
+      const card = new TwistedCard('', SpecialEffect.SwitchLight);
+
+      player1.addToHand(card);
+
+      cardService.save(card);
+
+      const table = new Table();
+
+      tableService.save(table);
+
+      const playedCardCommand = new PlayedCardCommand(gameService, serverSocket, {
+        cardId: card.id,
+        tableId: table.id,
+        userId: player1.id,
+        targetUserId: player2.id,
+      });
+
+      expect(gameState.light).toBe(Lights.RED);
+
+      playedCardCommand.execute();
+
+      expect(gameState.light).toBe(Lights.BLUE);
+
+      done();
+    });
+
+    test('should swap the two players hands', (done) => {
+      const player1 = new Player('abcd', 'player1');
+      const player2 = new Player('bcde', 'player2');
+
+      userService.save(player1);
+      userService.save(player2);
+
+      const card = new TwistedCard('', SpecialEffect.SwapHand);
+      const card2 = new TwistedCard('', SpecialEffect.SneakAPeak);
+
+      player1.addToHand(card);
+      player2.addToHand(card2);
+
+      cardService.save(card);
+
+      const table = new Table();
+
+      tableService.save(table);
+
+      const playedCardCommand = new PlayedCardCommand(gameService, serverSocket, {
+        cardId: card.id,
+        tableId: table.id,
+        userId: player1.id,
+        targetUserId: player2.id,
+      });
+
+      playedCardCommand.execute();
+
+      expect(player2.getHand().getCards()[0]).toBe(card);
+      expect(player1.getHand().getCards()[0]).toBe(card2);
+
+      done();
+    });
+
+    test('should throw UserNotFoundException exception', (done) => {
+      const player1 = new Player('abcd', 'player1');
+      const player2 = new Player('bcde', 'player2');
+
+      userService.save(player1);
+      userService.save(player2);
+
+      const card = new Card('');
+
+      player1.addToHand(card);
+
+      cardService.save(card);
+
+      const table = new Table();
+
+      tableService.save(table);
+
+      expect(() => {
+        const playedCardCommand = new PlayedCardCommand(gameService, serverSocket, {
+          cardId: card.id,
+          tableId: table.id,
+          userId: player1.id,
+          targetUserId: 'eeeee1111',
+        });
+
+        playedCardCommand.execute();
+      }).toThrow(UserNotFoundException);
+      done();
+    });
+
+    test('should throw TableNotFoundException exception', (done) => {
+      const player1 = new Player('abcd', 'player1');
+      const player2 = new Player('bcde', 'player2');
+
+      userService.save(player1);
+      userService.save(player2);
+
+      const card = new Card('');
+
+      player1.addToHand(card);
+
+      cardService.save(card);
+
+      expect(() => {
+        const playedCardCommand = new PlayedCardCommand(gameService, serverSocket, {
+          cardId: card.id,
+          tableId: randomUUID(),
+          userId: player1.id,
+          targetUserId: player2.id,
+        });
+
+        playedCardCommand.execute();
+      }).toThrow(TableNotFoundException);
+      done();
+    });
+
+    test('should throw CardNotInHandException exception', (done) => {
+      const player1 = new Player('abcd', 'player1');
+      const player2 = new Player('bcde', 'player2');
+
+      userService.save(player1);
+      userService.save(player2);
+
+      const card = new Card('');
+
+      cardService.save(card);
+
+      expect(() => {
+        const playedCardCommand = new PlayedCardCommand(gameService, serverSocket, {
+          cardId: card.id,
+          tableId: randomUUID(),
+          userId: player1.id,
+          targetUserId: player2.id,
+        });
+
+        playedCardCommand.execute();
+      }).toThrow(CardNotInHandException);
+      done();
+    });
+
+    test('should throw CardNotFoundException exception', (done) => {
+      const player1 = new Player('abcd', 'player1');
+      const player2 = new Player('bcde', 'player2');
+
+      userService.save(player1);
+      userService.save(player2);
+
+      expect(() => {
+        const playedCardCommand = new PlayedCardCommand(gameService, serverSocket, {
+          cardId: randomUUID(),
+          tableId: randomUUID(),
+          userId: player1.id,
+          targetUserId: player2.id,
+        });
+
+        playedCardCommand.execute();
+      }).toThrow(CardNotFoundException);
+      done();
+    });
+
+    test('should throw UserNotFoundException exception', (done) => {
+      expect(() => {
+        const playedCardCommand = new PlayedCardCommand(gameService, serverSocket, {
+          cardId: randomUUID(),
+          tableId: randomUUID(),
+          userId: 'eeeee111',
+          targetUserId: 'eeeee111',
+        });
+
+        playedCardCommand.execute();
+      }).toThrow(UserNotFoundException);
+      done();
+    });
+
+    test('should throw InvalidPayloadException exception', (done) => {
+      expect(() => {
+        const playedCardCommand = new PlayedCardCommand(gameService, serverSocket, {
+          cardId: randomUUID(),
+          tableId: 'not-uuid' as UUID,
+          userId: 'abcd',
+          targetUserId: 'abcd',
+        });
+
+        playedCardCommand.execute();
+      }).toThrow(InvalidPayloadException);
+      done();
+    });
+  });
+
   describe('UserReadyCommand', () => {
     test('should emit UserReady event when valid payload is provided', (done) => {
       const users = userService.findAll();
@@ -502,6 +748,46 @@ describe('SocketHandler', () => {
   });
 
   describe('handleConnection', () => {
+    test('should register event listeners for each command', (done) => {
+      // Define a mock command and payload
+      class MockCommand implements Command {
+        constructor(private socket: ServerSocket, private payload: any) { }
+
+        execute(): void {
+          // Mock implementation
+        }
+      }
+
+      const mockCommandClass = MockCommand as any;
+      const mockPayload = { test: 'payload' };
+
+      // Register the mock command in the commandFactory
+      const socketHandler = new SocketHandler(io, gameService);
+
+      socketHandler.setCommands({
+        UserConnect: (socket, payload) => new mockCommandClass(socket, payload),
+        CreateLobby: (socket, payload) => new mockCommandClass(socket, payload),
+        JoinLobby: (socket, payload) => new mockCommandClass(socket, payload),
+        LeaveLobby: (socket, payload) => new mockCommandClass(socket, payload),
+        SendMessage: (socket, payload) => new mockCommandClass(socket, payload),
+        UserReady: (socket, payload) => new mockCommandClass(socket, payload),
+        PickedCard: (socket, payload) => new mockCommandClass(socket, payload),
+        PlayedCard: (socket, payload) => new mockCommandClass(socket, payload),
+      });
+
+      // Call the handleConnection method to register event listeners
+      socketHandler.handleConnection();
+
+      // Simulate the 'TestEvent' being emitted by the clientSocket
+      clientSocket.emit('UserConnect', mockPayload);
+
+      // Verify that the command was executed
+      serverSocket.on('UserConnect', (payload) => {
+        expect(payload).toEqual(mockPayload);
+        done();
+      });
+    });
+
     test('should handle connection and register event listeners', (done) => {
       const mockOn = jest.spyOn(io, 'on');
       const mockSocketOn = jest.spyOn(serverSocket, 'on');
@@ -523,6 +809,7 @@ describe('SocketHandler', () => {
       expect(mockSocketOn).toHaveBeenCalledWith('SendMessage', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('UserReady', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('PickedCard', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('PlayedCard', expect.any(Function));
 
       done();
     });

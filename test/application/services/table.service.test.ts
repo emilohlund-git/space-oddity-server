@@ -7,9 +7,21 @@ describe('TableService', () => {
   let tableRepository: TableRepository;
   let tableService: TableService;
 
-  beforeAll(() => {
+  beforeEach(() => {
     tableRepository = new InMemoryTableRepository();
     tableService = new TableService(tableRepository);
+  });
+
+  describe('findById', () => {
+    test('should return a table by id', (done) => {
+      const table = new Table();
+
+      tableService.save(table);
+
+      expect(tableService.findById(table.id)).toBe(table);
+
+      done();
+    });
   });
 
   describe('findAll', () => {
