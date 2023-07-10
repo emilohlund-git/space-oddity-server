@@ -9,6 +9,7 @@ class Player extends User {
     super(id, username);
 
     this.hand = hand;
+    this.hand.setPlayer(this);
   }
 
   public getId(): string {
@@ -23,8 +24,16 @@ class Player extends User {
     return this.hand;
   }
 
+  public setHand(hand: Hand) {
+    this.hand = hand;
+  }
+
   public addToHand(card: Card): void {
     this.hand.addCard(card);
+  }
+
+  public addManyToHand(cards: Card[]): void {
+    this.hand.addCards(cards);
   }
 
   public removeFromHand(card: Card): void {

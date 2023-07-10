@@ -7,20 +7,24 @@ export enum CardType {
 }
 
 class Card {
-  private owner: Player;
+  private owner?: Player;
 
   private graphic: string;
 
   private type: CardType;
 
-  constructor(owner: Player, graphic: string, type: CardType = CardType.Regular) {
+  constructor(graphic: string, type: CardType = CardType.Regular, owner?: Player) {
     this.owner = owner;
     this.graphic = graphic;
     this.type = type;
   }
 
-  public getOwner(): Player {
-    return this.owner;
+  public getOwner(): Player | undefined {
+    return this.owner ? this.owner : undefined;
+  }
+
+  public setOwner(owner: Player | undefined) {
+    this.owner = owner;
   }
 
   public getGraphic(): string {
