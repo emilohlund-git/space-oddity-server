@@ -7,9 +7,21 @@ describe('DeckService', () => {
   let deckRepository: DeckRepository;
   let deckService: DeckService;
 
-  beforeAll(() => {
+  beforeEach(() => {
     deckRepository = new InMemoryDeckRepository();
     deckService = new DeckService(deckRepository);
+  });
+
+  describe('findById', () => {
+    test('should return a deck by id', (done) => {
+      const deck = new Deck();
+
+      deckService.save(deck);
+
+      expect(deckService.findById(deck.id)).toBe(deck);
+
+      done();
+    });
   });
 
   describe('findAll', () => {

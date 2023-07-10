@@ -8,8 +8,8 @@ import GameService from '../services/game.service';
 import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type PickedCardPayload = {
-  previousOwnerId: string;
-  newOwnerId: string;
+  userPreviousId: string;
+  userNewId: string;
   cardId: UUID;
 };
 
@@ -21,17 +21,16 @@ class PickedCardCommand implements Command {
   ) { }
 
   execute(): void {
-    const { previousOwnerId, newOwnerId, cardId } = this.payload;
+    const { userPreviousId, userNewId, cardId } = this.payload;
 
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
 
-    const previousOwner = this.gameService.getUserService().findById(previousOwnerId);
-    const newOwner = this.gameService.getUserService().findById(newOwnerId);
+    const previousOwner = this.gameService.getUserService().findById(userPreviousId);
+    const newOwner = this.gameService.getUserService().findById(userNewId);
 
     if (!previousOwner || !newOwner) {
-      const errorMessage = `👋 ${!previousOwner ? 'Previous owner' : 'New owner'} (${!previousOwner ? previousOwnerId : newOwnerId}) does not exist.`;
-      throw new UserNotFoundException(errorMessage);
+      throw new UserNotFoundException(`👋 ${!previousOwner ? 'Previous owner' : 'New owner'} (${!previousOwner ? userPreviousId : userNewId}) does not exist.`);
     }
 
     const card = this.gameService.getCardService().findById(cardId);
@@ -48,7 +47,7 @@ class PickedCardCommand implements Command {
     card.setOwner(newOwner);
     newOwner.addToHand(card);
 
-    this.socket.emit('PickedCard', newOwnerId, cardId);
+    this.socket.emit('PickedCard', userNewId, cardId);
   }
 }
 

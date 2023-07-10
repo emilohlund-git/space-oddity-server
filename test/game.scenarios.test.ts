@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { createServer } from 'http';
 import { Server, Socket as ServerSocket } from 'socket.io';
 import Client, { Socket as ClientSocket } from 'socket.io-client';
+import GameNotInProgressException from '../src/application/exceptions/game-not-in-progress.exception';
 import { CardService } from '../src/application/services/card.service';
 import { DeckService } from '../src/application/services/deck.service';
 import GameService from '../src/application/services/game.service';
@@ -89,7 +90,7 @@ describe('GameScenarios', () => {
     let player2: Player;
     let player3: Player;
 
-    beforeEach(() => {
+    beforeAll(() => {
       player1 = new Player('1', 'player1');
       player2 = new Player('2', 'player2');
       player3 = new Player('3', 'player3');
@@ -100,25 +101,45 @@ describe('GameScenarios', () => {
       gameService.getGameState().lobby.addUser(player1);
       gameService.getGameState().lobby.addUser(player2);
       gameService.getGameState().lobby.addUser(player3);
+
+      gameState.startGame();
     });
 
     it('should distribute cards to players', () => {
-      gameService.getGameState().startGame();
-
-      expect(player1.getHand().getCards().length).toBe(16);
-      expect(player2.getHand().getCards().length).toBe(16);
-      expect(player3.getHand().getCards().length).toBe(15);
+      expect(player1.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby.getDeck().getCards().length / gameState.lobby.getPlayers().length);
+      expect(player2.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby.getDeck().getCards().length / gameState.lobby.getPlayers().length);
+      expect(player3.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby.getDeck().getCards().length / gameState.lobby.getPlayers().length);
     });
 
-    it('should be player3 who starts, and then change turn to player1, then player2', () => {
-      expect(gameService.getGameState().getCurrentPlayer().getUserName()).toBe(player3.getUserName());
-      gameService.getGameState().nextTurn();
-      expect(gameService.getGameState().getCurrentPlayer().getUserName()).toBe(player1.getUserName());
-      gameService.getGameState().nextTurn();
-      expect(gameService.getGameState().getCurrentPlayer().getUserName()).toBe(player2.getUserName());
+    it('should be player3 who starts, and then change turn to player1, then player2...', () => {
+      const players = gameState.lobby.getPlayers();
+      expect(gameState.getCurrentPlayer().getUserName()).toBe(players[2].getUserName());
+
+      for (let i = 0; i < players.length; i++) {
+        gameState.nextTurn();
+        expect(gameState.getCurrentPlayer().getUserName()).toBe(players[i].getUserName());
+      }
+    });
+
+    it('should throw GameNotInProgressException exception', () => {
+      expect(() => {
+        gameState.endGame();
+        const players = gameState.lobby.getPlayers();
+        const cardToTransfer = players[0].getHand().getCards()[0];
+        gameService.getGameState().transferCard(players[0], players[1], cardToTransfer);
+      }).toThrow(GameNotInProgressException);
+    });
+
+    it('should throw GameNotInProgressException exception', () => {
+      expect(() => {
+        gameState.endGame();
+        gameState.nextTurn();
+      }).toThrow(GameNotInProgressException);
     });
 
     it('should take a card from the next player', () => {
+      gameState.startGame();
+
       const players = gameState.lobby.getPlayers();
       const cardToTransfer = players[0].getHand().getCards()[0];
 

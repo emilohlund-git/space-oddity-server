@@ -11,8 +11,8 @@ enum GameStatus {
 }
 
 export enum Lights {
-  RED,
-  BLUE,
+  RED = 'red',
+  BLUE = 'blue',
 }
 
 class GameState {
@@ -40,9 +40,14 @@ class GameState {
 
     // Find the player with the least amount of cards
     const players = this.lobby.getPlayers();
-    const playerWithLeastCards = players.reduce((prevPlayer, currentPlayer) => {
-      return currentPlayer.getHand().getCards().length < prevPlayer.getHand().getCards().length ? currentPlayer : prevPlayer;
-    });
+
+    let playerWithLeastCards = players[0];
+    for (const player of players) {
+      if (player.getHand().getCards().length <
+        playerWithLeastCards.getHand().getCards().length) {
+        playerWithLeastCards = player;
+      }
+    }
 
     // Set the currentPlayerIndex to the index of the player with the least amount of cards
     this.currentPlayerIndex = players.findIndex((player) => player === playerWithLeastCards);
@@ -52,7 +57,7 @@ class GameState {
 
   public nextTurn(): void {
     if (this.gameStatus !== GameStatus.InProgress) {
-      throw new Error('Game is not in progress');
+      throw new GameNotInProgressException('Game is not in progress');
     }
 
     // Move to the next player's turn

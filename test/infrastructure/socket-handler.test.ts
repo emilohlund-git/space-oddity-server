@@ -227,6 +227,22 @@ describe('SocketHandler', () => {
   });
 
   describe('PickedCardCommand', () => {
+    test('should throw UserNotFoundException exception', (done) => {
+      const testCard = new Card('');
+      cardService.save(testCard);
+
+      expect(() => {
+        const pickedCardCommand = new PickedCardCommand(gameService, serverSocket, {
+          cardId: testCard.id,
+          userPreviousId: 'abcd1234',
+          userNewId: 'abcd1234',
+        });
+
+        pickedCardCommand.execute();
+      }).toThrow(UserNotFoundException);
+      done();
+    });
+
     test('should emit PickedCard event when valid payload is provided', (done) => {
       const testCard = new Card('');
       cardService.save(testCard);
@@ -245,8 +261,8 @@ describe('SocketHandler', () => {
 
       const pickedCardCommand = new PickedCardCommand(gameService, serverSocket, {
         cardId: testCard.id,
-        previousOwnerId: previousOwner.id,
-        newOwnerId: newOwner.id,
+        userPreviousId: previousOwner.id,
+        userNewId: newOwner.id,
       });
 
       expect(testCard.getOwner()).toEqual(previousOwner);
@@ -280,8 +296,8 @@ describe('SocketHandler', () => {
 
         const pickedCardCommand = new PickedCardCommand(gameService, serverSocket, {
           cardId: testCard.id,
-          previousOwnerId: previousOwnerId,
-          newOwnerId: newOwnerId,
+          userPreviousId: previousOwnerId,
+          userNewId: newOwnerId,
         });
 
         pickedCardCommand.execute();
@@ -302,8 +318,8 @@ describe('SocketHandler', () => {
 
         const pickedCardCommand = new PickedCardCommand(gameService, serverSocket, {
           cardId: randomUUID(),
-          previousOwnerId: previousOwnerId,
-          newOwnerId: newOwnerId,
+          userPreviousId: previousOwnerId,
+          userNewId: newOwnerId,
         });
 
         pickedCardCommand.execute();
@@ -373,6 +389,23 @@ describe('SocketHandler', () => {
   });
 
   describe('UserConnectCommand', () => {
+    test('should throw FailedUserConnectionException when user creation fails', () => {
+      jest.spyOn(gameService.getUserService(), 'findById').mockImplementation((userId) => {
+        if (userId === serverSocket.id) {
+          return undefined;
+        }
+        return {} as Player;
+      });
+
+      const userConnectCommand = new UserConnectCommand(gameService, serverSocket, {
+        username: 'test1234',
+      });
+
+      expect(() => userConnectCommand.execute()).toThrow(FailedUserConnectionException);
+
+      jest.spyOn(gameService.getUserService(), 'findById').mockRestore();
+    });
+
     test('should emit UserConnected event when valid payload is provided', (done) => {
       userRepository.clear();
 
