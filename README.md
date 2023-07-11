@@ -5,6 +5,7 @@
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D%2018.16.0-brightgreen.svg)](https://nodejs.org/)
 [![Socket.io Version](https://img.shields.io/badge/socket.io-4.7.1-orange.svg)](https://socket.io/)
 [![Express Version](https://img.shields.io/badge/express-4.18.2-red.svg)](https://expressjs.com/)
+![Fly.io Deployment](https://img.shields.io/github/actions/workflow/status/emilohlund-git/space-oddity-server/fly.yml?label=fly.io&labelColor=%23800080&color=%23FFF)
 [![codecov](https://codecov.io/gh/emilohlund-git/space-oddity-server/branch/main/graph/badge.svg?token=09SD0O77RV)](https://codecov.io/gh/emilohlund-git/space-oddity-server)
 
 </div>
