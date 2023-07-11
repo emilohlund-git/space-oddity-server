@@ -16,6 +16,7 @@ import UserReadyCommand from '../../src/application/commands/user-ready.command'
 import CardNotFoundException from '../../src/application/exceptions/card-not-found.exception';
 import CardNotInHandException from '../../src/application/exceptions/card-not-in-hand.exception';
 import FailedUserConnectionException from '../../src/application/exceptions/failed-user-connection.exception';
+import GameStateNotFoundException from '../../src/application/exceptions/game-state-not-found.exception';
 import InvalidPayloadException from '../../src/application/exceptions/invalid-payload.exception';
 import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../../src/application/exceptions/no-players-in-game.exception';
@@ -209,6 +210,37 @@ describe('SocketHandler', () => {
   });
 
   describe('PickedCardCommand', () => {
+    test('should throw GameStateNotFoundException exception', (done) => {
+      expect(() => {
+        const player1 = new Player('abcd', 'player1');
+        const player2 = new Player('bcde', 'player2');
+
+        userService.save(player1);
+        userService.save(player2);
+
+        const card = new TwistedCard('', SpecialEffect.SwitchLight);
+
+        player1.addToHand(card);
+
+        cardService.save(card);
+
+        const table = new Table();
+
+        tableService.save(table);
+
+        const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          gameStateId: randomUUID(),
+          lobbyId: randomUUID(),
+          userNewId: randomUUID(),
+          userPreviousId: randomUUID(),
+        });
+
+        pickedCardCommand.execute();
+      }).toThrow(GameStateNotFoundException);
+      done();
+    });
+
     test('should throw UserNotFoundException exception', (done) => {
       const testCard = new Card('');
       cardService.save(testCard);
@@ -455,6 +487,19 @@ describe('SocketHandler', () => {
   });
 
   describe('ChangeTurnCommand', () => {
+    test('should throw GameStateNotFoundException exception', (done) => {
+      expect(() => {
+        const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
+          gameStateId: randomUUID(),
+          lobbyId: randomUUID(),
+        });
+
+        changeTurnCommand.execute();
+      }).toThrow(GameStateNotFoundException);
+      done();
+    });
+
+
     test('should throw NotYourTurnException exception', (done) => {
       expect(() => {
         const lobby = new Lobby();
@@ -489,6 +534,38 @@ describe('SocketHandler', () => {
   });
 
   describe('PlayedCardCommand', () => {
+    test('should throw GameStateNotFoundException exception', (done) => {
+      expect(() => {
+        const player1 = new Player('abcd', 'player1');
+        const player2 = new Player('bcde', 'player2');
+
+        userService.save(player1);
+        userService.save(player2);
+
+        const card = new TwistedCard('', SpecialEffect.SwitchLight);
+
+        player1.addToHand(card);
+
+        cardService.save(card);
+
+        const table = new Table();
+
+        tableService.save(table);
+
+        const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          tableId: table.id,
+          userId: player1.id,
+          targetUserId: player2.id,
+          gameStateId: randomUUID(),
+          lobbyId: gameState.lobby!.id,
+        });
+
+        playedCardCommand.execute();
+      }).toThrow(GameStateNotFoundException);
+      done();
+    });
+
     test('should switch the GameState light from red to blue', (done) => {
       const player1 = new Player('abcd', 'player1');
       const player2 = new Player('bcde', 'player2');

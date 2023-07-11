@@ -5,7 +5,7 @@ import TwistedCard, { SpecialEffect } from '../../domain/entities/TwistedCard';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import CardNotFoundException from '../exceptions/card-not-found.exception';
 import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
-import GameStateFoundException from '../exceptions/game-state-not-found.exception';
+import GameStateNotFoundException from '../exceptions/game-state-not-found.exception';
 import TableNotFoundException from '../exceptions/table-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
@@ -37,7 +37,7 @@ class PlayedCardCommand implements Command {
     const gameState = this.gameService.getGameState(gameStateId);
 
     if (!gameState) {
-      throw new GameStateFoundException();
+      throw new GameStateNotFoundException();
     }
 
     const user = this.gameService.getUserService().findById(userId);

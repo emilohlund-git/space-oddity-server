@@ -1,8 +1,8 @@
-class GameStateFoundException extends Error {
+class GameStateNotFoundException extends Error {
   constructor(message?: string) {
     super(message || 'Game state not found.');
-    this.name = 'GameStateFoundException';
+    this.name = 'GameStateNotFoundException';
   }
 }
 
-export default GameStateFoundException;
+export default GameStateNotFoundException;
