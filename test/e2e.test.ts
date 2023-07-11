@@ -66,7 +66,7 @@ describe('End to End tests', () => {
     httpServer.listen(port, () => {
       /* @ts-ignore */
       clientSocket = Client(`http://localhost:${port}`, {
-        extraHeaders: { 'x-api-key': '496f848b-cf10-4386-aa67-b6e6e9a8c7c8' },
+        extraHeaders: { 'x-api-key': process.env.API_KEY! },
       });
       socketHandler = new SocketHandler(io, gameService);
       socketHandler.handleConnection();
