@@ -1,4 +1,6 @@
+import { CardDiscardedPayload } from '../../application/commands/card-discarded.command';
 import { ChangeTurnPayload } from '../../application/commands/change-turn.command';
+import { GameOverPayload } from '../../application/commands/game-over.command';
 import { JoinLobbyPayload } from '../../application/commands/join-lobby.command';
 import { LeaveLobbyPayload } from '../../application/commands/leave-lobby.command';
 import { PickedCardPayload } from '../../application/commands/picked-card.command';
@@ -22,6 +24,8 @@ export type ClientEvents = {
   PlayedCard: (payload: PlayedCardPayload) => void;
   ChangeTurn: (payload: ChangeTurnPayload) => void;
   StartGame: (payload: StartGamePayload) => void;
+  CardDiscarded: (payload: CardDiscardedPayload) => void;
+  GameOver: (payload: GameOverPayload) => void;
 };
 
 export type ServerEvents = {
@@ -35,6 +39,8 @@ export type ServerEvents = {
   PlayedCard: (cardEffect: SpecialEffect, userId: string, targetUserId?: string) => void;
   ChangeTurn: (userId: string) => void;
   GameStarted: () => void;
+  DiscardedCard: (lobbyId: string, tableId: string, cardId: string) => void;
+  GameEnded: () => void;
 };
 
 export interface Command {

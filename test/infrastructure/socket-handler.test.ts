@@ -4,8 +4,10 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server, Socket as ServerSocket } from 'socket.io';
 import Client, { Socket as ClientSocket } from 'socket.io-client';
+import CardDiscardedCommand from '../../src/application/commands/card-discarded.command';
 import ChangeTurnCommand from '../../src/application/commands/change-turn.command';
 import CreateLobbyCommand from '../../src/application/commands/create-lobby.command';
+import GameOverCommand from '../../src/application/commands/game-over.command';
 import JoinLobbyCommand from '../../src/application/commands/join-lobby.command';
 import LeaveLobbyCommand from '../../src/application/commands/leave-lobby.command';
 import PickedCardCommand from '../../src/application/commands/picked-card.command';
@@ -16,11 +18,13 @@ import UserReadyCommand from '../../src/application/commands/user-ready.command'
 import CardNotFoundException from '../../src/application/exceptions/card-not-found.exception';
 import CardNotInHandException from '../../src/application/exceptions/card-not-in-hand.exception';
 import FailedUserConnectionException from '../../src/application/exceptions/failed-user-connection.exception';
+import GameHasNotEndedException from '../../src/application/exceptions/game-has-ended.exception';
 import GameStateNotFoundException from '../../src/application/exceptions/game-state-not-found.exception';
 import InvalidPayloadException from '../../src/application/exceptions/invalid-payload.exception';
 import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../../src/application/exceptions/no-players-in-game.exception';
 import NotYourTurnException from '../../src/application/exceptions/not-your-turn.exception';
+import OwnerNotFoundException from '../../src/application/exceptions/owner-not-found.exception';
 import TableNotFoundException from '../../src/application/exceptions/table-not-found.exception';
 import UserNotFoundException from '../../src/application/exceptions/user-not-found.exception';
 import { CardService } from '../../src/application/services/card.service';
@@ -93,7 +97,7 @@ describe('SocketHandler', () => {
 
     const httpServer = createServer();
     io = new Server(httpServer);
-    const port = 3005;
+    const port = 3002;
 
     httpServer.listen(port, () => {
       clientSocket = Client(`http://localhost:${port}`);
@@ -109,6 +113,7 @@ describe('SocketHandler', () => {
 
   afterAll(() => {
     io.close();
+    serverSocket.disconnect();
     clientSocket.close();
   });
 
@@ -478,7 +483,7 @@ describe('SocketHandler', () => {
       // Register the command using the registerCommand method
       const socketHandler = new SocketHandler(io, gameService);
 
-      socketHandler.registerCommand('CreateLobby', mockCommandClass, [gameService, io]);
+      socketHandler.registerCommand('CreateLobby', mockCommandClass);
 
       // Verify that the command is registered in the commandFactory
       const commandFactory = socketHandler.getCommands();
@@ -778,6 +783,175 @@ describe('SocketHandler', () => {
     });
   });
 
+  describe('CardDiscardedCommand', () => {
+    test('should throw OwnerNotFoundException exception', (done) => {
+      const card = new Card('');
+      cardService.save(card);
+
+      const player = new Player('1234', 'test');
+      player.addToHand(card);
+
+      gameState.lobby!.addUser(player);
+
+      expect(() => {
+        const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+        });
+
+        cardDiscardedCommand.execute();
+      }).toThrow(OwnerNotFoundException);
+      done();
+    });
+
+    test('should throw NoPlayersInGameException exception', (done) => {
+      const card = new Card('');
+      cardService.save(card);
+
+      gameState.lobby!.removeUser('1234');
+
+      expect(() => {
+        const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+        });
+
+        cardDiscardedCommand.execute();
+      }).toThrow(NoPlayersInGameException);
+      done();
+    });
+
+    test('should throw CardNotInHandException exception', (done) => {
+      gameState.lobby!.addUser(new Player('2345', 'testing-2'));
+
+      expect(() => {
+        const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
+          cardId: randomUUID(),
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+        });
+
+        cardDiscardedCommand.execute();
+      }).toThrow(CardNotInHandException);
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      const card = new Card('');
+      cardService.save(card);
+
+      expect(() => {
+        gameState.setLobby(undefined);
+        const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          gameStateId: gameState.id,
+          lobbyId: randomUUID(),
+        });
+
+        cardDiscardedCommand.execute();
+      }).toThrow(LobbyNotFoundException);
+      done();
+    });
+
+    test('should throw GameStateNotFoundException exception', (done) => {
+      expect(() => {
+        const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
+          cardId: randomUUID(),
+          gameStateId: randomUUID(),
+          lobbyId: randomUUID(),
+        });
+
+        cardDiscardedCommand.execute();
+      }).toThrow(GameStateNotFoundException);
+      done();
+    });
+
+    test('should throw InvalidPayloadException exception', (done) => {
+      expect(() => {
+        const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
+          cardId: 'non-uuid' as UUID,
+          gameStateId: randomUUID(),
+          lobbyId: randomUUID(),
+        });
+
+        cardDiscardedCommand.execute();
+      }).toThrow(InvalidPayloadException);
+      done();
+    });
+  });
+
+  describe('GameOverCommand', () => {
+    test('should throw GameHasNotEndedException exception', (done) => {
+      const player = new Player('', 'test');
+      player.addToHand(new Card(''));
+
+      const lobby = new Lobby();
+      lobby.addUser(player);
+
+      lobbyService.save(lobby);
+
+      gameState.setLobby(lobby);
+
+      expect(() => {
+        gameState.endGame();
+
+        const gameOverCommand = new GameOverCommand(gameService, io, serverSocket, {
+          lobbyId: gameState.lobby!.id,
+          gameStateId: gameState.id,
+        });
+
+        gameOverCommand.execute();
+      }).toThrow(GameHasNotEndedException);
+
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      expect(() => {
+        const gameOverCommand = new GameOverCommand(gameService, io, serverSocket, {
+          lobbyId: randomUUID(),
+          gameStateId: gameState.id,
+        });
+
+        gameOverCommand.execute();
+      }).toThrow(LobbyNotFoundException);
+
+      done();
+    });
+
+    test('should throw GameStateNotFoundException exception', (done) => {
+      const lobby = new Lobby();
+
+      gameState.setLobby(lobby);
+
+      expect(() => {
+        const gameOverCommand = new GameOverCommand(gameService, io, serverSocket, {
+          lobbyId: gameState.lobby!.id,
+          gameStateId: randomUUID(),
+        });
+
+        gameOverCommand.execute();
+      }).toThrow(GameStateNotFoundException);
+
+      done();
+    });
+
+    test('should throw InvalidPayloadException exception', (done) => {
+      expect(() => {
+        const gameOverCommand = new GameOverCommand(gameService, io, serverSocket, {
+          lobbyId: 'non-uuid' as UUID,
+          gameStateId: gameState.id,
+        });
+
+        gameOverCommand.execute();
+      }).toThrow(InvalidPayloadException);
+
+      done();
+    });
+  });
+
   describe('UserReadyCommand', () => {
     test('should emit UserReady event when valid payload is provided', (done) => {
       const users = userService.findAll();
@@ -828,6 +1002,8 @@ describe('SocketHandler', () => {
         PlayedCard: (socket, payload) => new mockCommandClass(socket, payload),
         ChangeTurn: (socket, payload) => new mockCommandClass(socket, payload),
         StartGame: (socket, payload) => new mockCommandClass(socket, payload),
+        CardDiscarded: (socket, payload) => new mockCommandClass(socket, payload),
+        GameOver: (socket, payload) => new mockCommandClass(socket, payload),
       });
 
       // Call the handleConnection method to register event listeners
@@ -867,6 +1043,8 @@ describe('SocketHandler', () => {
       expect(mockSocketOn).toHaveBeenCalledWith('PlayedCard', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('ChangeTurn', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('StartGame', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('CardDiscarded', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('GameOver', expect.any(Function));
 
       done();
     });

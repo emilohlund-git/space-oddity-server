@@ -11,6 +11,7 @@ import GameService from '../src/application/services/game.service';
 import { LobbyService } from '../src/application/services/lobby.service';
 import { TableService } from '../src/application/services/table.service';
 import { UserService } from '../src/application/services/user.service';
+import Hand from '../src/domain/entities/Hand';
 import { ClientEvents, ServerEvents } from '../src/domain/interfaces/command.interface';
 import { CardRepository } from '../src/domain/repositories/card-repository.interface';
 import { DeckRepository } from '../src/domain/repositories/deck-repository.interface';
@@ -61,7 +62,7 @@ describe('End to End tests', () => {
     );
 
     const httpServer = createServer();
-    const port = 3006;
+    const port = 3001;
     io = new Server(httpServer);
     httpServer.listen(port, () => {
       /* @ts-ignore */
@@ -157,5 +158,31 @@ describe('End to End tests', () => {
     }
 
     expect(gameState.gameStatus).toBe('in_progress');
+
+    const discardedCard = player.getHand().getCards()[0];
+
+    /* Player discards a card */
+    clientSocket.emit('CardDiscarded', {
+      cardId: discardedCard.id,
+      gameStateId: gameState.id,
+      lobbyId: gameState.lobby!.id,
+    });
+
+    await wait();
+
+    expect(gameState.table.getDisposedCards().length).toBe(1);
+
+    player.setHand(new Hand());
+
+    /* End the game */
+    clientSocket.emit('GameOver', {
+      gameStateId: gameState.id,
+      lobbyId: gameState.lobby!.id,
+    });
+
+    await wait();
+
+    expect(gameState.isGameOver()).toBe(true);
+    expect(gameState.gameStatus).toBe('ended');
   });
 });
