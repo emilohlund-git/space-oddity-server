@@ -1,10 +1,11 @@
 import { UUID } from 'crypto';
-import type { Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import { Lights } from '../../domain/entities/GameState';
 import TwistedCard, { SpecialEffect } from '../../domain/entities/TwistedCard';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import CardNotFoundException from '../exceptions/card-not-found.exception';
 import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
+import GameStateFoundException from '../exceptions/game-state-not-found.exception';
 import TableNotFoundException from '../exceptions/table-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
@@ -15,20 +16,29 @@ export type PlayedCardPayload = {
   targetUserId?: string;
   cardId: UUID;
   tableId: UUID;
+  lobbyId: UUID;
+  gameStateId: UUID;
 };
 
 class PlayedCardCommand implements Command {
   constructor(
     private readonly gameService: GameService,
+    private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: PlayedCardPayload,
   ) { }
 
   execute(): void {
-    const { userId, targetUserId, cardId, tableId } = this.payload;
+    const { userId, gameStateId, lobbyId, targetUserId, cardId, tableId } = this.payload;
 
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
+
+    const gameState = this.gameService.getGameState(gameStateId);
+
+    if (!gameState) {
+      throw new GameStateFoundException();
+    }
 
     const user = this.gameService.getUserService().findById(userId);
     if (!user) {
@@ -69,9 +79,8 @@ class PlayedCardCommand implements Command {
           break;
         }
         case SpecialEffect.SwitchLight: {
-          const currentLight = this.gameService.getGameState().light;
-          this.gameService.getGameState().light =
-            currentLight === Lights.RED ? Lights.BLUE : Lights.RED;
+          const currentLight = gameState.light;
+          gameState.light = currentLight === Lights.RED ? Lights.BLUE : Lights.RED;
           break;
         }
       }
@@ -81,7 +90,7 @@ class PlayedCardCommand implements Command {
     user.removeFromHand(card);
     table.disposeCard(card);
 
-    this.socket.emit('PlayedCard', card.getSpecialEffect(), userId, targetUserId);
+    this.io.to(lobbyId).emit('PlayedCard', card.getSpecialEffect(), userId, targetUserId);
   }
 }
 

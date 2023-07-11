@@ -1,4 +1,4 @@
-import type { Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import Player from '../../domain/entities/Player';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import FailedUserConnectionException from '../exceptions/failed-user-connection.exception';
@@ -12,6 +12,7 @@ export type UserConnectPayload = {
 class UserConnectCommand implements Command {
   constructor(
     private readonly gameService: GameService,
+    private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: UserConnectPayload,
   ) { }

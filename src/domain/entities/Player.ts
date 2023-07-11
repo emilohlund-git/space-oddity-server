@@ -5,6 +5,8 @@ import { User } from './User';
 class Player extends User {
   private hand: Hand;
 
+  private isReady: boolean = false;
+
   constructor(id: string, username: string, hand: Hand = new Hand()) {
     super(id, username);
 
@@ -37,6 +39,14 @@ class Player extends User {
 
   public removeFromHand(card: Card): void {
     this.hand.removeCard(card);
+  }
+
+  public setIsReady() {
+    this.isReady = true;
+  }
+
+  public getIsReady() {
+    return this.isReady;
   }
 }
 

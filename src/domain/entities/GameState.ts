@@ -1,3 +1,4 @@
+import { UUID, randomUUID } from 'crypto';
 import DeckNotFoundException from '../../application/exceptions/deck-not-found.exception';
 import GameNotInProgressException from '../../application/exceptions/game-not-in-progress.exception';
 import LobbyNotFoundException from '../../application/exceptions/lobby-not-found.exception';
@@ -18,6 +19,8 @@ export enum Lights {
 }
 
 class GameState {
+  public id: UUID = randomUUID();
+
   public table: Table;
 
   public currentPlayerIndex: number;

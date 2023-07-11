@@ -1,3 +1,4 @@
+import { UUID } from 'crypto';
 import GameState from '../../domain/entities/GameState';
 import { CardService } from '../services/card.service';
 import { TableService } from '../services/table.service';
@@ -16,7 +17,7 @@ class GameService {
 
   private readonly lobbyService: LobbyService;
 
-  private readonly gameState: GameState;
+  private readonly gameStates: Map<string, GameState> = new Map();
 
   constructor(
     userService: UserService,
@@ -24,14 +25,12 @@ class GameService {
     tableService: TableService,
     deckService: DeckService,
     lobbyService: LobbyService,
-    gameState: GameState,
   ) {
     this.userService = userService;
     this.cardService = cardService;
     this.tableService = tableService;
     this.deckService = deckService;
     this.lobbyService = lobbyService;
-    this.gameState = gameState;
   }
 
   // Add methods for coordinating operations and accessing services as needed
@@ -56,8 +55,16 @@ class GameService {
     return this.lobbyService;
   }
 
-  public getGameState(): GameState {
-    return this.gameState;
+  public getGameState(gameStateId: UUID): GameState | undefined {
+    return this.gameStates.get(gameStateId);
+  }
+
+  public getGameStates(): GameState[] {
+    return Array.from(this.gameStates.values());
+  }
+
+  public setGameState(gameState: GameState): void {
+    this.gameStates.set(gameState.id, gameState);
   }
 }
 

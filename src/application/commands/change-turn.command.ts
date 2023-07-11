@@ -1,21 +1,37 @@
-import { Socket } from 'socket.io';
+import { UUID } from 'crypto';
+import { Server, Socket } from 'socket.io';
 import GameService from '../../application/services/game.service';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import GameStateFoundException from '../exceptions/game-state-not-found.exception';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../exceptions/no-players-in-game.exception';
 import NotYourTurnException from '../exceptions/not-your-turn.exception';
+import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
-export type ChangeTurnPayload = {};
+export type ChangeTurnPayload = {
+  gameStateId: UUID;
+  lobbyId: UUID;
+};
 
 class ChangeTurnCommand implements Command {
   constructor(
     private readonly gameService: GameService,
+    private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload?: ChangeTurnPayload,
+    private readonly payload: ChangeTurnPayload,
   ) { }
 
   public execute(): void {
-    const gameState = this.gameService.getGameState();
+    const { gameStateId, lobbyId } = this.payload;
+
+    const payloadValidationRules = createPayloadValidationRules(this.payload);
+    validatePayload(this.payload, payloadValidationRules);
+
+    const gameState = this.gameService.getGameState(gameStateId);
+
+    if (!gameState) {
+      throw new GameStateFoundException();
+    }
 
     if (!gameState.lobby) {
       throw new LobbyNotFoundException('Lobby does not exist for GameState');
@@ -33,7 +49,7 @@ class ChangeTurnCommand implements Command {
     gameState.nextTurn();
     const currentPlayer = gameState.getCurrentPlayer();
 
-    this.socket.emit('ChangeTurn', currentPlayer.id);
+    this.io.to(lobbyId).emit('ChangeTurn', currentPlayer.id);
   }
 }
 

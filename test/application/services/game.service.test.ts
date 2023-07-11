@@ -51,8 +51,8 @@ describe('GameService', () => {
       tableService,
       deckService,
       lobbyService,
-      gameState,
     );
+    gameService.setGameState(gameState);
   });
 
   describe('getTableService', () => {

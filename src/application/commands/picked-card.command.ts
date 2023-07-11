@@ -1,8 +1,9 @@
 import { UUID } from 'crypto';
-import type { Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import CardNotFoundException from '../exceptions/card-not-found.exception';
 import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
+import GameStateFoundException from '../exceptions/game-state-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
 import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
@@ -11,20 +12,29 @@ export type PickedCardPayload = {
   userPreviousId: string;
   userNewId: string;
   cardId: UUID;
+  gameStateId: UUID;
+  lobbyId: UUID;
 };
 
 class PickedCardCommand implements Command {
   constructor(
     private readonly gameService: GameService,
+    private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: PickedCardPayload,
   ) { }
 
   execute(): void {
-    const { userPreviousId, userNewId, cardId } = this.payload;
+    const { lobbyId, gameStateId, userPreviousId, userNewId, cardId } = this.payload;
 
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
+
+    const gameState = this.gameService.getGameState(gameStateId);
+
+    if (!gameState) {
+      throw new GameStateFoundException();
+    }
 
     const previousOwner = this.gameService.getUserService().findById(userPreviousId);
     const newOwner = this.gameService.getUserService().findById(userNewId);
@@ -43,11 +53,9 @@ class PickedCardCommand implements Command {
       throw new CardNotInHandException(`👋 Card: ${cardId} does not exist in players hand.`);
     }
 
-    previousOwner.removeFromHand(card);
-    card.setOwner(newOwner);
-    newOwner.addToHand(card);
+    gameState.transferCard(previousOwner, newOwner, card);
 
-    this.socket.emit('PickedCard', userNewId, cardId);
+    this.io.to(lobbyId).emit('PickedCard', userNewId, cardId);
   }
 }
 
