@@ -116,7 +116,7 @@ class GameState {
     return this.lobby;
   }
 
-  public setLobby(lobby: Lobby): void {
+  public setLobby(lobby: Lobby | undefined): void {
     this.lobby = lobby;
   }
 }

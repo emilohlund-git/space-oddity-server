@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/indent */
 import { randomUUID } from 'crypto';
+import DeckNotFoundException from '../../src/application/exceptions/deck-not-found.exception';
 import InsufficientCardsException from '../../src/application/exceptions/insufficient-cards.exception';
+import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
 import BlackHoleCard from '../../src/domain/entities/BlackHoleCard';
 import Card, { CardType } from '../../src/domain/entities/Card';
 import Deck from '../../src/domain/entities/Deck';
+import GameState from '../../src/domain/entities/GameState';
 import Hand from '../../src/domain/entities/Hand';
 import { Lobby } from '../../src/domain/entities/Lobby';
 import Player from '../../src/domain/entities/Player';
@@ -193,6 +196,77 @@ describe('Entities', () => {
       const newPlayerHand = new Hand();
       player.setHand(newPlayerHand);
       expect(player.getHand()).toBe(newPlayerHand);
+
+      done();
+    });
+  });
+
+  describe('GameState', () => {
+    test('should return the GameState lobby', (done) => {
+      const gameState = new GameState(new Table());
+      const lobby = new Lobby();
+      lobby.setDeck(new Deck());
+      gameState.setLobby(lobby);
+
+      expect(gameState.getLobby()).toBe(lobby);
+
+      done();
+    });
+
+    test('should throw DeckNotFoundException exception', (done) => {
+      const gameState = new GameState(new Table());
+      const lobby = new Lobby();
+      lobby.setDeck(undefined);
+      gameState.setLobby(lobby);
+
+      expect(() => {
+        gameState.startGame();
+      }).toThrow(DeckNotFoundException);
+
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      const gameState = new GameState(new Table());
+      const lobby = new Lobby();
+      lobby.setDeck(new Deck());
+      gameState.setLobby(lobby);
+      gameState.startGame();
+
+      expect(() => {
+        gameState.setLobby(undefined);
+        gameState.isGameOver();
+      }).toThrow(LobbyNotFoundException);
+
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      const gameState = new GameState(new Table());
+      const lobby = new Lobby();
+      lobby.setDeck(new Deck());
+      gameState.setLobby(lobby);
+      gameState.startGame();
+
+      expect(() => {
+        gameState.setLobby(undefined);
+        gameState.getCurrentPlayer();
+      }).toThrow(LobbyNotFoundException);
+
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      const gameState = new GameState(new Table());
+      const lobby = new Lobby();
+      lobby.setDeck(new Deck());
+      gameState.setLobby(lobby);
+      gameState.startGame();
+
+      expect(() => {
+        gameState.setLobby(undefined);
+        gameState.nextTurn();
+      }).toThrow(LobbyNotFoundException);
 
       done();
     });

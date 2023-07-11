@@ -2,7 +2,7 @@ import { UUID } from 'crypto';
 import { Server, Socket } from 'socket.io';
 import GameService from '../../application/services/game.service';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import GameStateFoundException from '../exceptions/game-state-not-found.exception';
+import GameStateNotFoundException from '../exceptions/game-state-not-found.exception';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../exceptions/no-players-in-game.exception';
 import NotYourTurnException from '../exceptions/not-your-turn.exception';
@@ -30,7 +30,7 @@ class ChangeTurnCommand implements Command {
     const gameState = this.gameService.getGameState(gameStateId);
 
     if (!gameState) {
-      throw new GameStateFoundException();
+      throw new GameStateNotFoundException();
     }
 
     if (!gameState.lobby) {

@@ -9,7 +9,7 @@ export class Lobby {
 
   private deck?: Deck;
 
-  public setDeck(deck: Deck): void {
+  public setDeck(deck: Deck | undefined): void {
     this.deck = deck;
   }
 
