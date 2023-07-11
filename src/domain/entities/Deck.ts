@@ -45,6 +45,7 @@ class Deck {
         const player = players[j];
         const card = this.drawCard();
         if (card) {
+          card.setOwner(player);
           player.addToHand(card);
           distributedCards.push(card);
         }
@@ -55,6 +56,7 @@ class Deck {
       const player = players[i];
       const card = this.drawCard();
       if (card) {
+        card.setOwner(player);
         player.addToHand(card);
         distributedCards.push(card);
       }

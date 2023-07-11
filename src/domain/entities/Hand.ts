@@ -7,6 +7,10 @@ class Hand {
     this.cards = [];
   }
 
+  public getCard(cardId: string) {
+    return this.cards.find((c) => c.id === cardId);
+  }
+
   public getCards(): Card[] {
     return this.cards;
   }
