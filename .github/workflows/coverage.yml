@@ -22,7 +22,7 @@ jobs:
       - run: npm ci
       - run: npm run build --if-present
       - name: Run Tests
-        run: npm run test:cov --env API_KEY=$API_KEY
+        run: npm run test:cov
       - name: Code Coverage
         uses: codecov/codecov-action@v3
         with:
