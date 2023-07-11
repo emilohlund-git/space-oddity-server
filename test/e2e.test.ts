@@ -61,7 +61,7 @@ describe('End to End tests', () => {
     );
 
     const httpServer = createServer();
-    const port = process.env.SOCKET_PORT_TEST_2;
+    const port = 3006;
     io = new Server(httpServer);
     httpServer.listen(port, () => {
       /* @ts-ignore */

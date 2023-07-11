@@ -92,7 +92,7 @@ describe('SocketHandler', () => {
 
     const httpServer = createServer();
     io = new Server(httpServer);
-    const port = process.env.SOCKET_PORT_TEST_1;
+    const port = 3005;
 
     httpServer.listen(port, () => {
       clientSocket = Client(`http://localhost:${port}`);
