@@ -1,4 +1,4 @@
-import type { Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import { getShuffledDeck } from '../../../test/utils/test.utils';
 import { Lobby } from '../../domain/entities/Lobby';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
@@ -10,6 +10,7 @@ export type CreateLobbyPayload = {};
 class CreateLobbyCommand implements Command {
   constructor(
     private readonly gameService: GameService,
+    private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload?: CreateLobbyPayload,
   ) { }
@@ -25,6 +26,8 @@ class CreateLobbyCommand implements Command {
     lobby.addUser(user);
     lobby.setDeck(getShuffledDeck());
     this.gameService.getLobbyService().save(lobby);
+
+    this.socket.join(lobby.id);
     this.socket.emit('LobbyCreated', lobby);
   }
 }

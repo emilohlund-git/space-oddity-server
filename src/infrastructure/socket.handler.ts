@@ -7,6 +7,7 @@ import LeaveLobbyCommand from '../application/commands/leave-lobby.command';
 import PickedCardCommand from '../application/commands/picked-card.command';
 import PlayedCardCommand from '../application/commands/played-card.command';
 import SendMessageCommand from '../application/commands/send-message.command';
+import StartGameCommand from '../application/commands/start-game.command';
 import UserConnectCommand from '../application/commands/user-connect.command';
 import UserReadyCommand from '../application/commands/user-ready.command';
 import GameService from '../application/services/game.service';
@@ -31,24 +32,25 @@ class SocketHandler {
     this.io = io;
     this.commandFactory = {} as CommandFactory;
 
-    this.registerCommand('UserConnect', UserConnectCommand, this.gameService);
-    this.registerCommand('CreateLobby', CreateLobbyCommand, this.gameService);
-    this.registerCommand('JoinLobby', JoinLobbyCommand, this.gameService);
-    this.registerCommand('LeaveLobby', LeaveLobbyCommand, this.gameService);
-    this.registerCommand('SendMessage', SendMessageCommand, this.gameService);
-    this.registerCommand('UserReady', UserReadyCommand, this.gameService);
-    this.registerCommand('PickedCard', PickedCardCommand, this.gameService);
-    this.registerCommand('PlayedCard', PlayedCardCommand, this.gameService);
-    this.registerCommand('ChangeTurn', ChangeTurnCommand, this.gameService);
+    this.registerCommand('UserConnect', UserConnectCommand, [this.gameService, this.io]);
+    this.registerCommand('CreateLobby', CreateLobbyCommand, [this.gameService, this.io]);
+    this.registerCommand('JoinLobby', JoinLobbyCommand, [this.gameService, this.io]);
+    this.registerCommand('LeaveLobby', LeaveLobbyCommand, [this.gameService, this.io]);
+    this.registerCommand('SendMessage', SendMessageCommand, [this.gameService, this.io]);
+    this.registerCommand('UserReady', UserReadyCommand, [this.gameService, this.io]);
+    this.registerCommand('PickedCard', PickedCardCommand, [this.gameService, this.io]);
+    this.registerCommand('PlayedCard', PlayedCardCommand, [this.gameService, this.io]);
+    this.registerCommand('ChangeTurn', ChangeTurnCommand, [this.gameService, this.io]);
+    this.registerCommand('StartGame', StartGameCommand, [this.gameService, this.io]);
   }
 
   public registerCommand<T extends Command>(
     eventName: keyof ClientEvents,
     commandClass: new (...args: any[]) => T,
-    commandArgs?: GameService,
+    commandArgs: any[],
   ): void {
     this.commandFactory[eventName] = (socket: Socket<ClientEvents, ServerEvents>, payload: any) => {
-      return new commandClass(commandArgs, socket, payload);
+      return new commandClass(...commandArgs, socket, payload);
     };
   }
 
@@ -85,7 +87,7 @@ class SocketHandler {
 
           try {
             const command = createCommand(socket, payload);
-            command.execute(socket);
+            command.execute();
           } catch (error) {
             this.handleSocketError(error, socket);
           }

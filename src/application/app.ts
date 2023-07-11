@@ -5,8 +5,6 @@ import helmet from 'helmet';
 import http from 'http';
 import morgan from 'morgan';
 import { Server } from 'socket.io';
-import GameState from '../domain/entities/GameState';
-import Table from '../domain/entities/Table';
 import MessageResponse from '../domain/interfaces/MessageResponse';
 import { ClientEvents, ServerEvents } from '../domain/interfaces/command.interface';
 import * as middlewares from '../domain/middlewares';
@@ -63,15 +61,12 @@ const tableService = new TableService(tableRepository);
 const cardService = new CardService(cardRepository);
 const userService = new UserService(userRepository);
 const lobbyService = new LobbyService(lobbyRepository);
-const gameState = new GameState(new Table());
-
 const gameService = new GameService(
   userService,
   cardService,
   tableService,
   deckService,
   lobbyService,
-  gameState,
 );
 
 const socketHandler = new SocketHandler(io, gameService);

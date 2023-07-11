@@ -1,6 +1,3 @@
-import { createServer } from 'http';
-import { Server, Socket as ServerSocket } from 'socket.io';
-import Client, { Socket as ClientSocket } from 'socket.io-client';
 import GameNotInProgressException from '../src/application/exceptions/game-not-in-progress.exception';
 import { CardService } from '../src/application/services/card.service';
 import { DeckService } from '../src/application/services/deck.service';
@@ -26,9 +23,6 @@ import { InMemoryUserRepository } from '../src/infrastructure/repositories/in-me
 import { getShuffledDeck } from './utils/test.utils';
 
 describe('GameScenarios', () => {
-  let io: Server;
-  let serverSocket: ServerSocket;
-  let clientSocket: ClientSocket;
   let cardRepository: CardRepository;
   let cardService: CardService;
   let userRepository: UserRepository;
@@ -42,7 +36,7 @@ describe('GameScenarios', () => {
   let gameService: GameService;
   let gameState: GameState;
 
-  beforeAll((done) => {
+  beforeAll(() => {
     cardRepository = new InMemoryCardRepository();
     userRepository = new InMemoryUserRepository();
     lobbyRepository = new InMemoryLobbyRepository();
@@ -63,26 +57,8 @@ describe('GameScenarios', () => {
       tableService,
       deckService,
       lobbyService,
-      gameState,
     );
-
-    const httpServer = createServer();
-    io = new Server(httpServer);
-    const port = 4000;
-    httpServer.listen(port, () => {
-      /* @ts-ignore */
-      clientSocket = new Client(`http://localhost:${port}`);
-      io.on('connection', (socket) => {
-        serverSocket = socket;
-        serverSocket.emit('hola');
-      });
-      clientSocket.on('connect', done);
-    });
-  });
-
-  afterAll(() => {
-    io.close();
-    clientSocket.close();
+    gameService.setGameState(gameState);
   });
 
   describe('Start game', () => {
@@ -98,9 +74,9 @@ describe('GameScenarios', () => {
       gameService.getUserService().save(player2);
       gameService.getUserService().save(player3);
 
-      gameService.getGameState().lobby?.addUser(player1);
-      gameService.getGameState().lobby?.addUser(player2);
-      gameService.getGameState().lobby?.addUser(player3);
+      gameState.lobby?.addUser(player1);
+      gameState.lobby?.addUser(player2);
+      gameState.lobby?.addUser(player3);
 
       gameState.startGame();
     });
@@ -126,7 +102,7 @@ describe('GameScenarios', () => {
         gameState.endGame();
         const players = gameState.lobby?.getPlayers();
         const cardToTransfer = players![0].getHand().getCards()[0];
-        gameService.getGameState().transferCard(players![0], players![1], cardToTransfer);
+        gameState.transferCard(players![0], players![1], cardToTransfer);
       }).toThrow(GameNotInProgressException);
     });
 
@@ -147,7 +123,7 @@ describe('GameScenarios', () => {
       let cardExists = players[0].getHand().getCards().some((card) => card.id === cardToTransfer.id);
       expect(cardExists).toBe(true);
 
-      gameService.getGameState().transferCard(players[0], players[1], cardToTransfer);
+      gameState.transferCard(players[0], players[1], cardToTransfer);
 
       // Ensure the card is removed from player1's hand after transfer
       cardExists = players[0].getHand().getCards().some((card) => card.id === cardToTransfer.id);

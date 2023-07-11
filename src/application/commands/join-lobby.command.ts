@@ -1,5 +1,5 @@
 import { UUID } from 'crypto';
-import type { Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
@@ -13,6 +13,7 @@ export type JoinLobbyPayload = {
 class JoinLobbyCommand implements Command {
   constructor(
     private readonly gameService: GameService,
+    private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: JoinLobbyPayload,
   ) { }
@@ -36,8 +37,9 @@ class JoinLobbyCommand implements Command {
     }
 
     lobby.addUser(user);
+    this.socket.join(lobbyId);
     this.gameService.getLobbyService().save(lobby);
-    this.socket.emit('UserJoinedLobby', lobby.id, user);
+    this.io.to(lobbyId).emit('UserJoinedLobby', lobby.id, user);
   }
 }
 
