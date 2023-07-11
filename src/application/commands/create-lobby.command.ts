@@ -1,9 +1,9 @@
 import type { Server, Socket } from 'socket.io';
-import { getShuffledDeck } from '../../../test/utils/test.utils';
 import { Lobby } from '../../domain/entities/Lobby';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
+import { getShuffledDeck } from '../utils/deck.utils';
 
 export type CreateLobbyPayload = {};
 
