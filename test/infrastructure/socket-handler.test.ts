@@ -501,6 +501,32 @@ describe('SocketHandler', () => {
       sendMessageCommand.execute();
     });
 
+    test('should throw UserNotFoundException exception', (done) => {
+      expect(() => {
+        const sendMessageCommand = new SendMessageCommand(gameService, io, serverSocket, {
+          lobbyId: randomUUID(),
+          message: '1234',
+          userId: randomUUID(),
+        });
+
+        sendMessageCommand.execute();
+      }).toThrow(UserNotFoundException);
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      expect(() => {
+        const sendMessageCommand = new SendMessageCommand(gameService, io, serverSocket, {
+          lobbyId: randomUUID(),
+          message: '1234',
+          userId: serverSocket.id,
+        });
+
+        sendMessageCommand.execute();
+      }).toThrow(LobbyNotFoundException);
+      done();
+    });
+
     test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
       expect(() => {
         const sendMessageCommand = new SendMessageCommand(gameService, io, serverSocket, {
