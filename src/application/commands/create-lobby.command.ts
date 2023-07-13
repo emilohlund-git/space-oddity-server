@@ -22,8 +22,7 @@ class CreateLobbyCommand implements Command {
       throw new UserNotFoundException(`User not found with ID: ${this.socket.id}`);
     }
 
-    const lobby = new Lobby();
-    lobby.addUser(user);
+    const lobby = new Lobby(user);
     lobby.setDeck(getShuffledDeck());
     this.gameService.getLobbyService().save(lobby);
 

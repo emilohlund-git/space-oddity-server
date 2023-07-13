@@ -1,5 +1,6 @@
 import { UUID } from 'crypto';
 import Card from '../../domain/entities/Card';
+import Player from '../../domain/entities/Player';
 import { CardRepository } from '../../domain/repositories/card-repository.interface';
 
 export class InMemoryCardRepository implements CardRepository {
@@ -9,8 +10,10 @@ export class InMemoryCardRepository implements CardRepository {
     this.cards = new Map<UUID, Card>();
   }
 
-  findByPlayer(userId: UUID): Card | undefined {
-    return Array.from(this.cards.values()).find((c) => c.getOwner()?.getId() === userId);
+  findByPlayer(player: Player): Card[] {
+    const hand = player.getHand();
+    const cards = Array.from(this.cards.values());
+    return cards.filter((c) => hand.getCards().includes(c));
   }
 
   save(card: Card): void {

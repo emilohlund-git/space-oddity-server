@@ -86,7 +86,6 @@ class PlayedCardCommand implements Command {
       }
     }
 
-    card.setOwner(undefined);
     user.removeFromHand(card);
     table.disposeCard(card);
 

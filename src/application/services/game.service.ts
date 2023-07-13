@@ -66,6 +66,10 @@ class GameService {
   public setGameState(gameState: GameState): void {
     this.gameStates.set(gameState.id, gameState);
   }
+
+  public removeGameState(gameStateId: UUID): void {
+    this.gameStates.delete(gameStateId);
+  }
 }
 
 export default GameService;

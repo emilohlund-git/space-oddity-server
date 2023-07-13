@@ -23,6 +23,10 @@ export class InMemoryUserRepository implements UserRepository {
     return this.users.get(id);
   }
 
+  remove(userId: string): void {
+    this.users.delete(userId);
+  }
+
   findAll(): Player[] {
     return Array.from(this.users.values());
   }

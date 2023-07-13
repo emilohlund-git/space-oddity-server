@@ -48,7 +48,7 @@ describe('GameScenarios', () => {
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
     gameState = new GameState(new Table());
-    const lobby = new Lobby();
+    const lobby = new Lobby(new Player('', 'test'));
     lobby.setDeck(getShuffledDeck());
     gameState.setLobby(lobby);
     gameService = new GameService(
@@ -89,7 +89,7 @@ describe('GameScenarios', () => {
 
     it('should be player3 who starts, and then change turn to player1, then player2...', () => {
       const players = gameState.lobby?.getPlayers();
-      expect(gameState.getCurrentPlayer().getUserName()).toBe(players![2].getUserName());
+      expect(gameState.getCurrentPlayer().getUserName()).toBe(players![3].getUserName());
 
       for (let i = 0; i < players!.length; i++) {
         gameState.nextTurn();

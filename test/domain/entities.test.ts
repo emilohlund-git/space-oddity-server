@@ -63,19 +63,6 @@ describe('Entities', () => {
         done();
       });
     });
-
-    describe('getOwner', () => {
-      test('Should return undefined and then the player owner', (done) => {
-        const testCard = new Card('');
-        expect(testCard.getOwner()).toBe(undefined);
-
-        testCard.setOwner(new Player(randomUUID(), 'test-user', new Hand()));
-
-        expect(testCard.getOwner()?.getUserName()).toBe('test-user');
-
-        done();
-      });
-    });
   });
 
   describe('Deck', () => {
@@ -204,7 +191,7 @@ describe('Entities', () => {
   describe('GameState', () => {
     test('should return the GameState lobby', (done) => {
       const gameState = new GameState(new Table());
-      const lobby = new Lobby();
+      const lobby = new Lobby(new Player('1234', 'test'));
       lobby.setDeck(new Deck());
       gameState.setLobby(lobby);
 
@@ -215,7 +202,7 @@ describe('Entities', () => {
 
     test('should throw DeckNotFoundException exception', (done) => {
       const gameState = new GameState(new Table());
-      const lobby = new Lobby();
+      const lobby = new Lobby(new Player('1234', 'test'));
       lobby.setDeck(undefined);
       gameState.setLobby(lobby);
 
@@ -228,7 +215,7 @@ describe('Entities', () => {
 
     test('should throw LobbyNotFoundException exception', (done) => {
       const gameState = new GameState(new Table());
-      const lobby = new Lobby();
+      const lobby = new Lobby(new Player('1234', 'test'));
       lobby.setDeck(new Deck());
       gameState.setLobby(lobby);
       gameState.startGame();
@@ -243,7 +230,7 @@ describe('Entities', () => {
 
     test('should throw LobbyNotFoundException exception', (done) => {
       const gameState = new GameState(new Table());
-      const lobby = new Lobby();
+      const lobby = new Lobby(new Player('1234', 'test'));
       lobby.setDeck(new Deck());
       gameState.setLobby(lobby);
       gameState.startGame();
@@ -258,7 +245,7 @@ describe('Entities', () => {
 
     test('should throw LobbyNotFoundException exception', (done) => {
       const gameState = new GameState(new Table());
-      const lobby = new Lobby();
+      const lobby = new Lobby(new Player('1234', 'test'));
       lobby.setDeck(new Deck());
       gameState.setLobby(lobby);
       gameState.startGame();
@@ -273,11 +260,20 @@ describe('Entities', () => {
   });
 
   describe('Lobby', () => {
+    test('should get the lobbies host, then change host', (done) => {
+      const lobby = new Lobby(new Player('1234', 'test1234'));
+      expect(lobby.getHost().getUserName()).toBe('test1234');
+
+      lobby.setHost(new Player('2345', 'test2345'));
+      expect(lobby.getHost().getUserName()).toBe('test2345');
+      done();
+    });
+
     test('should set a deck for the lobby', (done) => {
       const oldDeck = new Deck();
       const newDeck = new Deck();
 
-      const lobby = new Lobby();
+      const lobby = new Lobby(new Player('1234', 'test'));
       lobby.setDeck(oldDeck);
 
       expect(lobby.getDeck()).toBe(oldDeck);
@@ -291,13 +287,13 @@ describe('Entities', () => {
 
     test('should add a user to the lobby and then remove it', (done) => {
       const userId = randomUUID();
-      const lobby = new Lobby();
-      expect(lobby.getPlayers().length).toBe(0);
+      const lobby = new Lobby(new Player('1234', 'test'));
+      expect(lobby.getPlayers().length).toBe(1);
       const testUser = new Player(userId, 'test');
       lobby.addUser(testUser);
-      expect(lobby.getPlayers().length).toBe(1);
+      expect(lobby.getPlayers().length).toBe(2);
       lobby.removeUser(userId);
-      expect(lobby.getPlayers().length).toBe(0);
+      expect(lobby.getPlayers().length).toBe(1);
       done();
     });
   });

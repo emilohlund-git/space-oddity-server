@@ -6,6 +6,7 @@ import { TableService } from '../../../src/application/services/table.service';
 import { UserService } from '../../../src/application/services/user.service';
 import GameState from '../../../src/domain/entities/GameState';
 import { Lobby } from '../../../src/domain/entities/Lobby';
+import Player from '../../../src/domain/entities/Player';
 import Table from '../../../src/domain/entities/Table';
 import { CardRepository } from '../../../src/domain/repositories/card-repository.interface';
 import { DeckRepository } from '../../../src/domain/repositories/deck-repository.interface';
@@ -44,7 +45,7 @@ describe('GameService', () => {
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
     gameState = new GameState(new Table());
-    gameState.setLobby(new Lobby());
+    gameState.setLobby(new Lobby(new Player('1234', 'test')));
     gameService = new GameService(
       userService,
       cardService,

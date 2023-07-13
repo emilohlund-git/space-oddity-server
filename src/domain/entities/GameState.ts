@@ -29,7 +29,7 @@ class GameState {
 
   public light: Lights;
 
-  public lobby: Lobby | undefined;
+  public lobby?: Lobby;
 
   constructor(table: Table) {
     this.table = table;
@@ -87,7 +87,6 @@ class GameState {
     const targetHand = targetPlayer.getHand();
 
     sourceHand.removeCard(card);
-    card.setOwner(targetPlayer);
     targetHand.addCard(card);
   }
 

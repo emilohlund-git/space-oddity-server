@@ -111,28 +111,29 @@ describe('End to End tests', () => {
 
     await wait();
 
-    const lobby = gameService.getLobbyService().findAll()[0];
+    let lobby = gameService.getLobbyService().findAll()[0];
     if (!lobby) fail('lobby does not exist.');
 
-    expect(lobby?.getPlayers().includes(player)).toBe(true);
+    expect(lobby.getPlayers().includes(player)).toBe(true);
 
-    /* Player leaves the lobby */
+    /* Player leaves the lobby, lobby gets removed cause of no players */
     clientSocket.emit('LeaveLobby', {
       lobbyId: lobby.id,
     });
 
     await wait();
 
-    expect(lobby.getPlayers().includes(player)).toBe(false);
+    lobby = gameService.getLobbyService().findAll()[0];
+    expect(lobby).not.toBeDefined();
 
-    /* Player re-joins the lobby */
-    clientSocket.emit('JoinLobby', {
-      lobbyId: lobby.id,
-    });
+    /* Re-create the lobby */
+    clientSocket.emit('CreateLobby');
 
     await wait();
 
+    lobby = gameService.getLobbyService().findAll()[0];
     expect(lobby.getPlayers().includes(player)).toBe(true);
+    expect(lobby).toBeDefined();
 
     /* Player sets ready status */
     clientSocket.emit('UserReady', {
@@ -151,7 +152,7 @@ describe('End to End tests', () => {
 
     await wait();
 
-    const gameState = gameService.getGameStates()[0];
+    let gameState = gameService.getGameStates()[0];
 
     if (!gameState) {
       throw new GameStateFoundException();
@@ -166,11 +167,20 @@ describe('End to End tests', () => {
       cardId: discardedCard.id,
       gameStateId: gameState.id,
       lobbyId: gameState.lobby!.id,
+      userId: player.id,
     });
 
     await wait();
 
     expect(gameState.table.getDisposedCards().length).toBe(1);
+
+    /* Change the turn of the game */
+    clientSocket.emit('ChangeTurn', {
+      gameStateId: gameState.id,
+      lobbyId: gameState.lobby!.id,
+    });
+
+    await wait();
 
     player.setHand(new Hand());
 
@@ -184,5 +194,21 @@ describe('End to End tests', () => {
 
     expect(gameState.isGameOver()).toBe(true);
     expect(gameState.gameStatus).toBe('ended');
+
+    /* Disconnect the player */
+    clientSocket.emit('UserDisconnect', {
+      userId: player.id,
+      lobbyId: gameState.lobby?.id,
+      gameStateId: gameState.id,
+    });
+
+    await wait();
+
+    expect(gameState.lobby).toBeUndefined();
+    expect(gameService.getUserService().findAll()).toHaveLength(0);
+
+    gameState = gameService.getGameStates()[0];
+
+    expect(gameState).toBeUndefined();
   });
 });

@@ -20,6 +20,7 @@ class JoinLobbyCommand implements Command {
 
   execute(): void {
     const { lobbyId } = this.payload;
+    console.log(lobbyId);
 
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
@@ -39,7 +40,7 @@ class JoinLobbyCommand implements Command {
     lobby.addUser(user);
     this.socket.join(lobbyId);
     this.gameService.getLobbyService().save(lobby);
-    this.io.to(lobbyId).emit('UserJoinedLobby', lobby.id, user);
+    this.io.to(lobbyId).emit('UserJoinedLobby', lobby);
   }
 }
 

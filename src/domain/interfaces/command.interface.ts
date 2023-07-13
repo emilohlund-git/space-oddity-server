@@ -8,6 +8,7 @@ import { PlayedCardPayload } from '../../application/commands/played-card.comman
 import { SendMessagePayload } from '../../application/commands/send-message.command';
 import { StartGamePayload } from '../../application/commands/start-game.command';
 import { UserConnectPayload } from '../../application/commands/user-connect.command';
+import { UserDisconnectPayload } from '../../application/commands/user-disconnect.command';
 import { UserReadyPayload } from '../../application/commands/user-ready.command';
 import { Lobby } from '../entities/Lobby';
 import Player from '../entities/Player';
@@ -26,6 +27,7 @@ export type ClientEvents = {
   StartGame: (payload: StartGamePayload) => void;
   CardDiscarded: (payload: CardDiscardedPayload) => void;
   GameOver: (payload: GameOverPayload) => void;
+  UserDisconnect: (payload: UserDisconnectPayload) => void;
 };
 
 export type ServerEvents = {
@@ -41,6 +43,7 @@ export type ServerEvents = {
   GameStarted: () => void;
   DiscardedCard: (lobbyId: string, tableId: string, cardId: string) => void;
   GameEnded: () => void;
+  UserDisconnected: (user: Player) => void;
 };
 
 export interface Command {
