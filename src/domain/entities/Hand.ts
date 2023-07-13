@@ -26,7 +26,6 @@ class Hand {
   public removeCard(card: Card): void {
     const index = this.cards.indexOf(card);
     if (index !== -1) {
-      this.cards[index].setOwner(undefined);
       this.cards.splice(index, 1);
     }
   }

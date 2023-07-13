@@ -5,6 +5,7 @@ export interface UserRepository {
   save(user: User): void;
   findById(id: string): Player | undefined;
   findByUsername(username: string): Player | undefined;
+  remove(userId: string): void;
   findAll(): Player[];
   clear(): void;
   // Add other necessary methods for retrieving, updating, and deleting lobbies

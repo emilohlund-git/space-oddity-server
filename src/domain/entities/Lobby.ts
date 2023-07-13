@@ -1,5 +1,6 @@
 import { UUID, randomUUID } from 'crypto';
 import Deck from './Deck';
+import { Message } from './Message';
 import Player from './Player';
 
 export class Lobby {
@@ -7,7 +8,32 @@ export class Lobby {
 
   private users: Player[] = [];
 
+  private messages: Message[] = [];
+
   private deck?: Deck;
+
+  private host: Player;
+
+  constructor(host: Player) {
+    this.host = host;
+    this.users.push(host);
+  }
+
+  public getHost(): Player {
+    return this.host;
+  }
+
+  public setHost(player: Player) {
+    this.host = player;
+  }
+
+  public addMessage(message: Message) {
+    this.messages.push(message);
+  }
+
+  public getMessages(): Message[] {
+    return this.messages;
+  }
 
   public setDeck(deck: Deck | undefined): void {
     this.deck = deck;

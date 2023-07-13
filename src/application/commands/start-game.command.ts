@@ -28,16 +28,18 @@ class StartGameCommand implements Command {
     const gameState = new GameState(new Table());
     this.gameService.setGameState(gameState);
 
-    const lobby = this.gameService.getLobbyService().findById(lobbyId);
+    const lobbyExists = this.gameService.getLobbyService().findById(lobbyId);
 
-    if (!lobby) {
+    if (!lobbyExists) {
       throw new LobbyNotFoundException('Unable to start game, lobby does not exist.');
     }
 
-    gameState.setLobby(lobby);
+    gameState.setLobby(lobbyExists);
     gameState.startGame();
 
-    this.io.to(lobbyId).emit('GameStarted');
+    const { lobby, ...rest } = gameState;
+
+    this.io.to(lobbyId).emit('GameStarted', rest);
   }
 }
 

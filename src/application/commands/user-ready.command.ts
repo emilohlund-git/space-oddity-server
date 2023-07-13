@@ -1,12 +1,14 @@
+import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
 import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type UserReadyPayload = {
   userId: string;
-  lobbyId: string;
+  lobbyId: UUID;
 };
 
 class UserReadyCommand implements Command {
@@ -23,6 +25,12 @@ class UserReadyCommand implements Command {
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
 
+    const lobby = this.gameService.getLobbyService().findById(lobbyId);
+
+    if (!lobby) {
+      throw new LobbyNotFoundException();
+    }
+
     const user = this.gameService.getUserService().findById(userId);
 
     if (!user) {
@@ -31,7 +39,7 @@ class UserReadyCommand implements Command {
 
     user.setIsReady();
 
-    this.io.to(lobbyId).emit('UserReady', user.id, lobbyId);
+    this.io.to(lobbyId).emit('UserReady', lobby);
   }
 }
 

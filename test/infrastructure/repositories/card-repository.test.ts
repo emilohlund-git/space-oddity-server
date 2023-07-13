@@ -41,10 +41,9 @@ describe('CardRepository', () => {
   test('should find a card by player', (done) => {
     const testUser = userService.findByUsername('test');
     const testCard = new Card(randomUUID());
-    testCard.setOwner(testUser);
     cardRepository.save(testCard);
 
-    expect(cardRepository.findByPlayer(testUser!.id)?.getOwner()).toBe(testUser);
+    expect(cardRepository.findByPlayer(testUser!)).toStrictEqual(testUser!.getHand().getCards());
 
     done();
   });

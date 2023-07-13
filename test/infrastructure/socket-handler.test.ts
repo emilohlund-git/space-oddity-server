@@ -14,6 +14,7 @@ import PickedCardCommand from '../../src/application/commands/picked-card.comman
 import PlayedCardCommand from '../../src/application/commands/played-card.command';
 import SendMessageCommand from '../../src/application/commands/send-message.command';
 import UserConnectCommand from '../../src/application/commands/user-connect.command';
+import UserDisconnectCommand from '../../src/application/commands/user-disconnect.command';
 import UserReadyCommand from '../../src/application/commands/user-ready.command';
 import CardNotFoundException from '../../src/application/exceptions/card-not-found.exception';
 import CardNotInHandException from '../../src/application/exceptions/card-not-in-hand.exception';
@@ -84,7 +85,7 @@ describe('SocketHandler', () => {
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
     gameState = new GameState(new Table());
-    gameState.setLobby(new Lobby());
+    gameState.setLobby(new Lobby(new Player('12345', 'testing')));
     gameService = new GameService(
       userService,
       cardService,
@@ -150,23 +151,23 @@ describe('SocketHandler', () => {
 
   describe('JoinLobbyCommand', () => {
     test('should emit UserJoinedLobby event when valid payload is provided', (done) => {
-      const testLobby = new Lobby();
+      const testLobby = new Lobby(new Player('1234', 'test2'));
       lobbyService.save(testLobby);
 
       const testUser = new Player(clientSocket.id, 'test', new Hand());
       userService.save(testUser);
 
-      expect(testLobby.getPlayers().length).toBe(0);
+      expect(testLobby.getPlayers().length).toBe(1);
 
       const joinLobbyCommand = new JoinLobbyCommand(gameService, io, serverSocket, {
         lobbyId: testLobby.id,
       });
 
-      clientSocket.on('UserJoinedLobby', (lobbyId, userId) => {
-        expect(lobbyId).toBeDefined();
-        expect(userId).toBeDefined();
-        const lobby = lobbyService.findById(lobbyId);
-        expect(lobby?.getPlayers().length).toBe(1);
+      clientSocket.on('UserJoinedLobby', (response: Lobby) => {
+        expect(response).toBeDefined();
+        const lobby = gameService.getLobbyService().findById(response.id);
+        expect(lobby).toBeInstanceOf(Lobby);
+        expect(lobby?.getPlayers().length).toBe(2);
 
         done();
       });
@@ -175,7 +176,7 @@ describe('SocketHandler', () => {
     });
 
     test('should throw UserNotFoundException when user is not found', () => {
-      const lobby = new Lobby();
+      const lobby = new Lobby(new Player('1234', 'test'));
       gameService.getLobbyService().save(lobby);
 
       const mockSocket: any = {
@@ -444,9 +445,10 @@ describe('SocketHandler', () => {
         message: 'test',
       });
 
-      clientSocket.on('MessageSent', (_userId, _lobbyId, message) => {
-        expect(message).toBeDefined();
-        expect(message).toBe('test');
+      clientSocket.on('MessageSent', (response: Lobby) => {
+        expect(response).toBeDefined();
+        const lobby = gameService.getLobbyService().findById(response.id);
+        expect(lobby?.getMessages()).toHaveLength(1);
         done();
       });
 
@@ -504,13 +506,29 @@ describe('SocketHandler', () => {
       done();
     });
 
+    test('should throw LobbyNotFoundException exception', (done) => {
+      const lobby = new Lobby(new Player('1234', 'test'));
+      lobby.setDeck(getShuffledDeck());
+      gameState.setLobby(lobby);
+      gameState.startGame();
+
+      expect(() => {
+        gameState.setLobby(undefined);
+        const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
+          gameStateId: gameState.id,
+          lobbyId: randomUUID(),
+        });
+
+        changeTurnCommand.execute();
+      }).toThrow(LobbyNotFoundException);
+      done();
+    });
 
     test('should throw NotYourTurnException exception', (done) => {
       expect(() => {
-        const lobby = new Lobby();
+        const lobby = new Lobby(new Player('1234', 'test'));
         lobby.setDeck(getShuffledDeck());
         gameState.setLobby(lobby);
-        gameState.lobby!.addUser(new Player('1234', 'test'));
         gameState.startGame();
 
         const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
@@ -525,7 +543,8 @@ describe('SocketHandler', () => {
 
     test('should throw NoPlayersInGameException exception', (done) => {
       expect(() => {
-        gameState.lobby = new Lobby();
+        gameState.lobby = new Lobby(new Player('1234', 'test'));
+        gameState.lobby.removeUser('1234');
 
         const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
           gameStateId: gameState.id,
@@ -791,13 +810,14 @@ describe('SocketHandler', () => {
       const player = new Player('1234', 'test');
       player.addToHand(card);
 
-      gameState.lobby!.addUser(player);
+      gameState.lobby!.addUser(new Player('2345', 'test2'));
 
       expect(() => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
           cardId: card.id,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
+          userId: player.id,
         });
 
         cardDiscardedCommand.execute();
@@ -810,12 +830,14 @@ describe('SocketHandler', () => {
       cardService.save(card);
 
       gameState.lobby!.removeUser('1234');
+      gameState.lobby!.removeUser('2345');
 
       expect(() => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
           cardId: card.id,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
+          userId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
@@ -831,6 +853,7 @@ describe('SocketHandler', () => {
           cardId: randomUUID(),
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
+          userId: '2345',
         });
 
         cardDiscardedCommand.execute();
@@ -848,6 +871,7 @@ describe('SocketHandler', () => {
           cardId: card.id,
           gameStateId: gameState.id,
           lobbyId: randomUUID(),
+          userId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
@@ -861,6 +885,7 @@ describe('SocketHandler', () => {
           cardId: randomUUID(),
           gameStateId: randomUUID(),
           lobbyId: randomUUID(),
+          userId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
@@ -874,9 +899,38 @@ describe('SocketHandler', () => {
           cardId: 'non-uuid' as UUID,
           gameStateId: randomUUID(),
           lobbyId: randomUUID(),
+          userId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
+      }).toThrow(InvalidPayloadException);
+      done();
+    });
+  });
+
+  describe('UserDisconnectedCommand', () => {
+    test('should throw FailedUserConnectionException exception', (done) => {
+      expect(() => {
+        const userDisconnectCommand = new UserDisconnectCommand(gameService, io, serverSocket, {
+          userId: randomUUID(),
+          gameStateId: randomUUID(),
+          lobbyId: randomUUID(),
+        });
+
+        userDisconnectCommand.execute();
+      }).toThrow(FailedUserConnectionException);
+      done();
+    });
+
+    test('should throw InvalidPayloadException exception', (done) => {
+      expect(() => {
+        const userDisconnectCommand = new UserDisconnectCommand(gameService, io, serverSocket, {
+          userId: randomUUID(),
+          gameStateId: 'non-uuid' as UUID,
+          lobbyId: randomUUID(),
+        });
+
+        userDisconnectCommand.execute();
       }).toThrow(InvalidPayloadException);
       done();
     });
@@ -887,7 +941,7 @@ describe('SocketHandler', () => {
       const player = new Player('', 'test');
       player.addToHand(new Card(''));
 
-      const lobby = new Lobby();
+      const lobby = new Lobby(player);
       lobby.addUser(player);
 
       lobbyService.save(lobby);
@@ -922,7 +976,7 @@ describe('SocketHandler', () => {
     });
 
     test('should throw GameStateNotFoundException exception', (done) => {
-      const lobby = new Lobby();
+      const lobby = new Lobby(new Player('1234', 'test'));
 
       gameState.setLobby(lobby);
 
@@ -962,11 +1016,9 @@ describe('SocketHandler', () => {
         lobbyId: lobbies[0].id,
       });
 
-      clientSocket.on('UserReady', (userId, lobbyId) => {
-        expect(userId).toBeDefined();
-        expect(lobbyId).toBeDefined();
-        expect(userId).toBe(users[0].id);
-        expect(lobbyId).toBe(lobbies[0].id);
+      clientSocket.on('UserReady', (lobby: Lobby) => {
+        expect(lobby).toBeDefined();
+        expect(lobby.id).toBe(lobbies[0].id);
         done();
       });
 
@@ -1004,6 +1056,7 @@ describe('SocketHandler', () => {
         StartGame: (socket, payload) => new mockCommandClass(socket, payload),
         CardDiscarded: (socket, payload) => new mockCommandClass(socket, payload),
         GameOver: (socket, payload) => new mockCommandClass(socket, payload),
+        UserDisconnect: (socket, payload) => new mockCommandClass(socket, payload),
       });
 
       // Call the handleConnection method to register event listeners
@@ -1045,6 +1098,7 @@ describe('SocketHandler', () => {
       expect(mockSocketOn).toHaveBeenCalledWith('StartGame', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('CardDiscarded', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('GameOver', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('UserDisconnect', expect.any(Function));
 
       done();
     });

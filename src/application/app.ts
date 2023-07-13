@@ -28,15 +28,14 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server<ClientEvents, ServerEvents>(server, {
   cors: {
-    origin: ['*', 'https://www.piesocket.com', 'http://'],
+    origin: ['*', 'http://localhost:3000'],
   },
-  transports: ['websocket'],
 });
 
 app.use(morgan('dev'));
 app.use(helmet());
 app.use(cors({
-  origin: ['*', 'https://www.piesocket.com'],
+  origin: ['*', 'http://localhost:3000'],
 }));
 app.use(express.json());
 

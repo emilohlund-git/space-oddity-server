@@ -1,6 +1,9 @@
 import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
+import { Message } from '../../domain/entities/Message';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
+import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
 import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
@@ -24,7 +27,23 @@ class SendMessageCommand implements Command {
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
 
-    this.io.to(lobbyId).emit('MessageSent', userId, lobbyId, message);
+    const player = this.gameService.getUserService().findById(userId);
+
+    if (!player) {
+      throw new UserNotFoundException();
+    }
+
+    const lobby = this.gameService.getLobbyService().findById(lobbyId);
+
+    if (!lobby) {
+      throw new LobbyNotFoundException();
+    }
+
+    const lobbyMessage = new Message(player, message);
+
+    lobby.addMessage(lobbyMessage);
+
+    this.io.to(lobbyId).emit('MessageSent', lobby);
   }
 }
 

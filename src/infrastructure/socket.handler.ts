@@ -11,6 +11,7 @@ import PlayedCardCommand from '../application/commands/played-card.command';
 import SendMessageCommand from '../application/commands/send-message.command';
 import StartGameCommand from '../application/commands/start-game.command';
 import UserConnectCommand from '../application/commands/user-connect.command';
+import UserDisconnectCommand from '../application/commands/user-disconnect.command';
 import UserReadyCommand from '../application/commands/user-ready.command';
 import GameService from '../application/services/game.service';
 import { logger } from '../configurations/logger.config';
@@ -46,6 +47,7 @@ class SocketHandler {
     this.registerCommand('StartGame', StartGameCommand);
     this.registerCommand('CardDiscarded', CardDiscardedCommand);
     this.registerCommand('GameOver', GameOverCommand);
+    this.registerCommand('UserDisconnect', UserDisconnectCommand);
   }
 
   public registerCommand<T extends Command>(

@@ -36,10 +36,15 @@ class LeaveLobbyCommand implements Command {
       throw new LobbyNotFoundException(`👋 Lobby: ${lobbyId} does not exist.`);
     }
 
+
     lobby.removeUser(user.id);
-    this.socket.leave(lobbyId);
     this.gameService.getLobbyService().save(lobby);
-    this.io.to(lobbyId).emit('UserLeftLobby', lobby.id, user.id);
+    this.socket.leave(lobbyId);
+    if (lobby.getPlayers().length === 0) {
+      this.gameService.getLobbyService().remove(lobby.id);
+    }
+
+    this.io.to(lobbyId).emit('UserLeftLobby', lobby);
   }
 }
 

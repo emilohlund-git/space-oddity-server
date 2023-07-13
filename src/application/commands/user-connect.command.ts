@@ -1,4 +1,5 @@
 import type { Server, Socket } from 'socket.io';
+import { logger } from '../../configurations/logger.config';
 import Player from '../../domain/entities/Player';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import FailedUserConnectionException from '../exceptions/failed-user-connection.exception';
@@ -17,8 +18,10 @@ class UserConnectCommand implements Command {
     private readonly payload: UserConnectPayload,
   ) { }
 
-  execute(): void {
+  execute(): any {
     const { username } = this.payload;
+
+    logger.info(`${username} just connected to the server.`);
 
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
@@ -38,7 +41,9 @@ class UserConnectCommand implements Command {
       throw new FailedUserConnectionException(`👋 Failed to connect User: ${this.socket.id}.`);
     }
 
-    this.socket.emit('UserConnected', userCreated);
+    this.io.emit('UserConnected', userCreated);
+
+    return userCreated;
   }
 }
 

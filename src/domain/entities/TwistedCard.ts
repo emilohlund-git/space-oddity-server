@@ -1,5 +1,4 @@
 import Card, { CardType } from './Card';
-import Player from './Player';
 
 export enum SpecialEffect {
   SneakAPeak,
@@ -10,8 +9,8 @@ export enum SpecialEffect {
 class TwistedCard extends Card {
   private specialEffect: SpecialEffect;
 
-  constructor(graphic: string, specialEffect: SpecialEffect, owner?: Player) {
-    super(graphic, CardType.Twisted, owner);
+  constructor(graphic: string, specialEffect: SpecialEffect) {
+    super(graphic, CardType.Twisted);
     this.specialEffect = specialEffect;
   }
 

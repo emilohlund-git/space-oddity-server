@@ -13,6 +13,7 @@ export type CardDiscardedPayload = {
   gameStateId: UUID;
   cardId: UUID;
   lobbyId: UUID;
+  userId: string;
 };
 
 class CardDiscardedCommand implements Command {
@@ -24,7 +25,7 @@ class CardDiscardedCommand implements Command {
   ) { }
 
   public execute(): void {
-    const { gameStateId, cardId, lobbyId } = this.payload;
+    const { gameStateId, cardId, lobbyId, userId } = this.payload;
 
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
@@ -43,20 +44,19 @@ class CardDiscardedCommand implements Command {
       throw new NoPlayersInGameException();
     }
 
+    const owner = gameState.lobby.getPlayers().find((u) => u.id === userId);
+
+    if (!owner) {
+      throw new OwnerNotFoundException();
+    }
+
     const card = gameState.getCurrentPlayer().getHand().getCard(cardId);
 
     if (!card) {
       throw new CardNotInHandException();
     }
 
-    const owner = card.getOwner();
-
-    if (!owner) {
-      throw new OwnerNotFoundException();
-    }
-
     owner.removeFromHand(card);
-    card.setOwner(undefined);
     gameState.table.disposeCard(card);
 
     this.io.to(lobbyId).emit('DiscardedCard', lobbyId, gameState.table.id, cardId);

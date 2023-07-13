@@ -25,5 +25,9 @@ export class InMemoryLobbyRepository implements LobbyRepository {
     this.lobbies = new Map<UUID, Lobby>();
   }
 
+  remove(id: UUID) {
+    this.lobbies.delete(id);
+  }
+
   // Implement other methods as needed
 }

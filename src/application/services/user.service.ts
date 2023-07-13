@@ -12,6 +12,10 @@ export class UserService {
     this.userRepository.save(user);
   }
 
+  public remove(userId: string) {
+    this.userRepository.remove(userId);
+  }
+
   public findById(userId: string) {
     return this.userRepository.findById(userId);
   }
