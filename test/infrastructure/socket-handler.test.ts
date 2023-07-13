@@ -35,6 +35,7 @@ import { LobbyService } from '../../src/application/services/lobby.service';
 import { TableService } from '../../src/application/services/table.service';
 import { UserService } from '../../src/application/services/user.service';
 import Card from '../../src/domain/entities/Card';
+import Deck from '../../src/domain/entities/Deck';
 import GameState, { Lights } from '../../src/domain/entities/GameState';
 import Hand from '../../src/domain/entities/Hand';
 import { Lobby } from '../../src/domain/entities/Lobby';
@@ -216,6 +217,51 @@ describe('SocketHandler', () => {
   });
 
   describe('PickedCardCommand', () => {
+    test('player1 should take a card from player2s hand', (done) => {
+      const player1 = new Player('abcd', 'player1');
+      const player2 = new Player('bcde', 'player2');
+
+      userService.save(player1);
+      userService.save(player2);
+
+      const card = new TwistedCard('', SpecialEffect.SwitchLight);
+
+      player1.addToHand(card);
+
+      cardService.save(card);
+
+      const table = new Table();
+
+      tableService.save(table);
+
+      const lobby = new Lobby(player1);
+
+      const deck = new Deck();
+
+      lobby.setDeck(deck);
+
+      gameState.setLobby(lobby);
+
+      gameState.startGame();
+
+      expect(player1.getHand().getCards().includes(card)).toBe(true);
+      expect(player2.getHand().getCards().includes(card)).toBe(false);
+
+      const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
+        cardId: card.id,
+        gameStateId: gameState.id,
+        lobbyId: gameState.lobby!.id,
+        userNewId: player2.id,
+        userPreviousId: player1.id,
+      });
+      pickedCardCommand.execute();
+
+      expect(player1.getHand().getCards().includes(card)).toBe(false);
+      expect(player2.getHand().getCards().includes(card)).toBe(true);
+
+      done();
+    });
+
     test('should throw GameStateNotFoundException exception', (done) => {
       expect(() => {
         const player1 = new Player('abcd', 'player1');
@@ -1007,6 +1053,32 @@ describe('SocketHandler', () => {
   });
 
   describe('UserReadyCommand', () => {
+    test('should throw UserNotFoundException exception', (done) => {
+      const lobbies = lobbyService.findAll();
+
+      expect(() => {
+        const userReadyCommand = new UserReadyCommand(gameService, io, serverSocket, {
+          userId: randomUUID(),
+          lobbyId: lobbies[0].id,
+        });
+        userReadyCommand.execute();
+      }).toThrow(UserNotFoundException);
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      const users = userService.findAll();
+
+      expect(() => {
+        const userReadyCommand = new UserReadyCommand(gameService, io, serverSocket, {
+          userId: users[0].id,
+          lobbyId: randomUUID(),
+        });
+        userReadyCommand.execute();
+      }).toThrow(LobbyNotFoundException);
+      done();
+    });
+
     test('should emit UserReady event when valid payload is provided', (done) => {
       const users = userService.findAll();
       const lobbies = lobbyService.findAll();

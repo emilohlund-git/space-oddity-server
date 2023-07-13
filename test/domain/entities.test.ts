@@ -260,9 +260,12 @@ describe('Entities', () => {
   });
 
   describe('Lobby', () => {
-    test('should get the lobbies host', (done) => {
+    test('should get the lobbies host, then change host', (done) => {
       const lobby = new Lobby(new Player('1234', 'test1234'));
       expect(lobby.getHost().getUserName()).toBe('test1234');
+
+      lobby.setHost(new Player('2345', 'test2345'));
+      expect(lobby.getHost().getUserName()).toBe('test2345');
       done();
     });
 
