@@ -28,14 +28,18 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server<ClientEvents, ServerEvents>(server, {
   cors: {
-    origin: ['*', 'http://localhost:3000'],
+    origin: ['*', 'http://localhost:3000', 'https://space-oddity-client.vercel.app'],
+  },
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 2 * 60 * 1000,
+    skipMiddlewares: true,
   },
 });
 
 app.use(morgan('dev'));
 app.use(helmet());
 app.use(cors({
-  origin: ['*', 'http://localhost:3000'],
+  origin: ['*', 'http://localhost:3000', 'https://space-oddity-client.vercel.app'],
 }));
 app.use(express.json());
 

@@ -37,9 +37,7 @@ class StartGameCommand implements Command {
     gameState.setLobby(lobbyExists);
     gameState.startGame();
 
-    const { lobby, ...rest } = gameState;
-
-    this.io.to(lobbyId).emit('GameStarted', rest);
+    this.io.to(lobbyId).emit('GameStarted', gameState);
   }
 }
 
