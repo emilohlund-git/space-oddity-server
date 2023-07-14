@@ -18,7 +18,7 @@ describe('CardService', () => {
 
       expect(cards).toHaveLength(0);
 
-      const testCard = new Card('');
+      const testCard = new Card(0);
 
       cardService.save(testCard);
 

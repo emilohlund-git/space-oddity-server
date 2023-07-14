@@ -1,4 +1,3 @@
-import { logger } from '../../configurations/logger.config';
 import InvalidPayloadException from '../exceptions/invalid-payload.exception';
 import { isValidString } from './string.validator';
 import { isValidUUID } from './uuid.validator';
@@ -15,7 +14,6 @@ type ValidationRule = (value: any) => boolean;
 type PayloadShape = Record<string, any>;
 
 export function createPayloadValidationRules(payloadShape: PayloadShape): Record<string, ValidationRule> {
-  logger.debug(payloadShape);
   return Object.entries(payloadShape).reduce((rules, [key, value]) => {
     let validationFunction: ValidationRule | undefined;
 

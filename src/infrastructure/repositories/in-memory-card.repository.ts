@@ -20,6 +20,18 @@ export class InMemoryCardRepository implements CardRepository {
     this.cards.set(card.id, card);
   }
 
+  saveMany(cards: Card[]): void {
+    for (const card of cards) {
+      this.cards.set(card.id, card);
+    }
+  }
+
+  removeMany(cards: Card[]): void {
+    for (const card of cards) {
+      this.cards.delete(card.id);
+    }
+  }
+
   findById(id: UUID): Card | undefined {
     return this.cards.get(id);
   }

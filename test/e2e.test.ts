@@ -29,6 +29,7 @@ dotenv.config();
 describe('End to End tests', () => {
   let io: Server;
   let clientSocket: ClientSocket<ServerEvents, ClientEvents>;
+  let clientSocket2: ClientSocket<ServerEvents, ClientEvents>;
   let cardRepository: CardRepository;
   let cardService: CardService;
   let userRepository: UserRepository;
@@ -42,7 +43,7 @@ describe('End to End tests', () => {
   let gameService: GameService;
   let socketHandler: SocketHandler;
 
-  beforeAll((done) => {
+  beforeEach((done) => {
     cardRepository = new InMemoryCardRepository();
     userRepository = new InMemoryUserRepository();
     lobbyRepository = new InMemoryLobbyRepository();
@@ -62,25 +63,40 @@ describe('End to End tests', () => {
     );
 
     const httpServer = createServer();
-    const port = 3001;
+    const port = 3005;
     io = new Server(httpServer);
+    const connectionsNeeded = 2;
+    let currentConnected = 0;
+
+    const checkConnections = () => {
+      currentConnected++;
+      if (connectionsNeeded == currentConnected) done();
+    };
+
     httpServer.listen(port, () => {
       /* @ts-ignore */
       clientSocket = Client(`http://localhost:${port}`, {
         extraHeaders: { 'x-api-key': process.env.API_KEY! },
       });
+      clientSocket2 = Client(`http://localhost:${port}`, {
+        extraHeaders: { 'x-api-key': process.env.API_KEY! },
+      });
       socketHandler = new SocketHandler(io, gameService);
       socketHandler.handleConnection();
-      clientSocket.on('connect', done);
+      clientSocket.on('connect', checkConnections);
+      clientSocket2.on('connect', checkConnections);
     });
 
     userRepository.clear();
     lobbyRepository.clear();
+
+    jest.setTimeout(10000);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     io.close();
     clientSocket.close();
+    clientSocket2.close();
   });
 
   const wait = async () => {
@@ -90,6 +106,142 @@ describe('End to End tests', () => {
       }, 200);
     });
   };
+
+  test('should simulate an entire game', async () => {
+    socketHandler.handleConnection();
+
+    /* Players connects to the game */
+    clientSocket.emit('UserConnect', {
+      username: 'test1',
+    });
+    clientSocket2.emit('UserConnect', {
+      username: 'test2',
+    });
+
+    await wait();
+
+    const players = gameService.getUserService().findAll();
+    expect(players).toHaveLength(2);
+    expect(players[0].getUserName()).toBe('test1');
+    expect(players[1].getUserName()).toBe('test2');
+
+    /* Player 1 creates a lobby and Player 2 joins it */
+    clientSocket.emit('CreateLobby');
+
+    await wait();
+
+    const lobby = gameService.getLobbyService().findAll()[0];
+    expect(lobby.getDeck()).toBeDefined();
+    expect(lobby.getDeck()?.getCards()).toHaveLength(47);
+    expect(lobby.getPlayers().includes(players[0])).toBe(true);
+    expect(lobby.getPlayers().includes(players[1])).toBe(false);
+
+    clientSocket2.emit('JoinLobby', {
+      lobbyId: lobby.id,
+    });
+
+    await wait();
+
+    expect(lobby.getPlayers().includes(players[0])).toBe(true);
+    expect(lobby.getPlayers().includes(players[1])).toBe(true);
+
+    /* Player 1 sends a message in the lobby */
+    clientSocket.emit('SendMessage', {
+      lobbyId: lobby.id,
+      message: 'Press ready',
+      userId: players[0].id,
+    });
+
+    await wait();
+
+    const messages = lobby.getMessages();
+    expect(messages[0].content).toBe('Press ready');
+    expect(messages[0].player).toBe(players[0]);
+
+    /* Players sets status ready */
+    expect(players[0].getIsReady()).toBe(false);
+    expect(players[1].getIsReady()).toBe(false);
+
+    clientSocket.emit('UserReady', {
+      lobbyId: lobby.id,
+      userId: players[0].id,
+    });
+    clientSocket2.emit('UserReady', {
+      lobbyId: lobby.id,
+      userId: players[1].id,
+    });
+
+    await wait();
+
+    expect(players[0].getIsReady()).toBe(true);
+    expect(players[1].getIsReady()).toBe(true);
+
+    /* Player1 starts the game */
+    clientSocket.emit('StartGame', {
+      lobbyId: lobby.id,
+    });
+
+    await wait();
+
+    const gameState = gameService.getGameStates()[0];
+    expect(gameState).toBeDefined();
+    expect(gameState.getLobby()).toBe(lobby);
+    expect(gameState.gameStatus).toBe('in_progress');
+    expect(gameState.getCurrentPlayer()).toBe(players[1]);
+
+    if (!gameState.lobby) fail();
+
+    /* Player 2 starts by picking a card from Player 1 */
+    const pickedCard = players[0].getHand().getCards()[3];
+
+    clientSocket2.emit('PickedCard', {
+      cardId: pickedCard.id,
+      gameStateId: gameState.id,
+      lobbyId: gameState.lobby.id,
+      userNewId: players[1].id,
+      userPreviousId: players[0].id,
+    });
+
+    await wait();
+
+    expect(players[0].getHand().getCards().includes(pickedCard)).toBe(false);
+    expect(players[1].getHand().getCards().includes(pickedCard)).toBe(true);
+
+    /* Turn should change from Player2 to Player1 */
+    expect(gameState.getCurrentPlayer()).toBe(players[1]);
+
+    clientSocket2.emit('ChangeTurn', {
+      gameStateId: gameState.id,
+      lobbyId: gameState.lobby.id,
+    });
+
+    await wait();
+
+    expect(gameState.getCurrentPlayer()).toBe(players[0]);
+
+    /* Player 1 removes all matches in hand */
+    const matches = players[0].getHand().getMatches();
+
+    const card1Match = matches[0];
+    const card2Match = matches[1];
+
+    expect(card1Match.getValue()).toBe(card2Match.getValue());
+
+    for (let i = 0; i < matches.length; i += 2) {
+      clientSocket.emit('MatchCards', {
+        card1Id: matches[i].id,
+        card2Id: matches[i + 1].id,
+        gameStateId: gameState.id,
+        lobbyId: gameState.lobby.id,
+        userId: players[0].id,
+      });
+    }
+
+    await wait();
+
+    expect(players[0].getHand().getCards().includes(card1Match)).toBe(false);
+    expect(players[0].getHand().getCards().includes(card2Match)).toBe(false);
+  });
 
   test('should connect a player, create a lobby and start the game', async () => {
     socketHandler.handleConnection();

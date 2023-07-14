@@ -1,8 +1,8 @@
 import Card, { CardType } from './Card';
 
 class BlackHoleCard extends Card {
-  constructor(graphic: string) {
-    super(graphic, CardType.BlackHole);
+  constructor(value: number) {
+    super(value, CardType.BlackHole);
   }
 }
 

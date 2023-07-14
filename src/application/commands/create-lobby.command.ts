@@ -23,7 +23,11 @@ class CreateLobbyCommand implements Command {
     }
 
     const lobby = new Lobby(user);
-    lobby.setDeck(getShuffledDeck());
+    const deck = getShuffledDeck();
+
+    lobby.setDeck(deck);
+
+    this.gameService.getCardService().saveMany(deck.getCards());
     this.gameService.getLobbyService().save(lobby);
 
     this.socket.join(lobby.id);
