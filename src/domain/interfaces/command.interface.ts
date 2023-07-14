@@ -3,6 +3,7 @@ import { ChangeTurnPayload } from '../../application/commands/change-turn.comman
 import { GameOverPayload } from '../../application/commands/game-over.command';
 import { JoinLobbyPayload } from '../../application/commands/join-lobby.command';
 import { LeaveLobbyPayload } from '../../application/commands/leave-lobby.command';
+import { MatchCardsPayload } from '../../application/commands/match-cards.command';
 import { PickedCardPayload } from '../../application/commands/picked-card.command';
 import { PlayedCardPayload } from '../../application/commands/played-card.command';
 import { SendMessagePayload } from '../../application/commands/send-message.command';
@@ -10,6 +11,7 @@ import { StartGamePayload } from '../../application/commands/start-game.command'
 import { UserConnectPayload } from '../../application/commands/user-connect.command';
 import { UserDisconnectPayload } from '../../application/commands/user-disconnect.command';
 import { UserReadyPayload } from '../../application/commands/user-ready.command';
+import GameState from '../entities/GameState';
 import { Lobby } from '../entities/Lobby';
 import Player from '../entities/Player';
 import { SpecialEffect } from '../entities/TwistedCard';
@@ -28,6 +30,7 @@ export type ClientEvents = {
   CardDiscarded: (payload: CardDiscardedPayload) => void;
   GameOver: (payload: GameOverPayload) => void;
   UserDisconnect: (payload: UserDisconnectPayload) => void;
+  MatchCards: (payload: MatchCardsPayload) => void;
 };
 
 export type ServerEvents = {
@@ -44,6 +47,7 @@ export type ServerEvents = {
   DiscardedCard: (lobbyId: string, tableId: string, cardId: string) => void;
   GameEnded: () => void;
   UserDisconnected: (user: Player) => void;
+  CardsMatched: (gameState: GameState) => void;
 };
 
 export interface Command {

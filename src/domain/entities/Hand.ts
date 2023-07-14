@@ -29,6 +29,31 @@ class Hand {
       this.cards.splice(index, 1);
     }
   }
+
+  public removeCards(cards: Card[]): void {
+    for (const card of cards) {
+      const index = this.cards.indexOf(card);
+      if (index !== -1) {
+        this.cards.splice(index, 1);
+      }
+    }
+  }
+
+  public getMatches(): Card[] {
+    const matches: Card[] = [];
+
+    for (let i = 0; i < this.cards.length; i++) {
+      const cardA = this.cards[i];
+      for (let j = i + 1; j < this.cards.length; j++) {
+        const cardB = this.cards[j];
+        if (cardA.getValue() === cardB.getValue()) {
+          matches.push(cardA, cardB);
+        }
+      }
+    }
+
+    return matches;
+  }
 }
 
 export default Hand;

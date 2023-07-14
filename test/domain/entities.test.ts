@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/indent */
 import { randomUUID } from 'crypto';
+import CardNotInHandException from '../../src/application/exceptions/card-not-in-hand.exception';
 import DeckNotFoundException from '../../src/application/exceptions/deck-not-found.exception';
 import InsufficientCardsException from '../../src/application/exceptions/insufficient-cards.exception';
 import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
 import BlackHoleCard from '../../src/domain/entities/BlackHoleCard';
-import Card, { CardType } from '../../src/domain/entities/Card';
+import Card, { CardType, cardGraphicMapping } from '../../src/domain/entities/Card';
 import Deck from '../../src/domain/entities/Deck';
 import GameState from '../../src/domain/entities/GameState';
 import Hand from '../../src/domain/entities/Hand';
@@ -20,14 +21,14 @@ describe('Entities', () => {
 
   beforeAll((done) => {
     cards = <Card[]>[];
-    cards.push(new TwistedCard('', SpecialEffect.SneakAPeak));
-    cards.push(new TwistedCard('', SpecialEffect.SwapHand));
-    cards.push(new TwistedCard('', SpecialEffect.SwitchLight));
-    cards.push(new BlackHoleCard(''));
-    cards.push(new BlackHoleCard(''));
+    cards.push(new TwistedCard(0, SpecialEffect.SneakAPeak));
+    cards.push(new TwistedCard(0, SpecialEffect.SwapHand));
+    cards.push(new TwistedCard(0, SpecialEffect.SwitchLight));
+    cards.push(new BlackHoleCard(0));
+    cards.push(new BlackHoleCard(0));
 
     for (let i = 0; i < 42; i++) {
-      cards.push(new Card(''));
+      cards.push(new Card(0));
     }
 
     deck = new Deck();
@@ -41,7 +42,7 @@ describe('Entities', () => {
   describe('Table', () => {
     test('should dispose a card and then return a list of all disposed cards, then clear', (done) => {
       const table = new Table();
-      const card = new Card('test');
+      const card = new Card(0);
       table.disposeCard(card);
 
       expect(table.getDisposedCards()[0]).toBe(card);
@@ -57,8 +58,11 @@ describe('Entities', () => {
   describe('Card', () => {
     describe('getGraphic', () => {
       test('Should return cards graphic URL string', (done) => {
-        const testCard = new Card('test');
-        expect(testCard.getGraphic()).toBe('test');
+        const testCard = new Card(0);
+        expect(testCard.getGraphic()).toBe('defaultGraphic.png');
+
+        testCard.setValue(1);
+        expect(testCard.getGraphic()).toBe(cardGraphicMapping[1]);
 
         done();
       });
@@ -69,7 +73,7 @@ describe('Entities', () => {
     describe('drawCard', () => {
       test('Should draw a card from the top of the Deck', (done) => {
         const testDeck = new Deck();
-        const testCard = new TwistedCard('', SpecialEffect.SneakAPeak);
+        const testCard = new TwistedCard(0, SpecialEffect.SneakAPeak);
         testDeck.addCard(testCard);
         const drawnCard = testDeck.drawCard();
 
@@ -94,14 +98,14 @@ describe('Entities', () => {
         cards = <Card[]>[];
 
         for (let i = 0; i < 42; i++) {
-          cards.push(new Card(''));
+          cards.push(new Card(0));
         }
 
-        cards.push(new TwistedCard('', SpecialEffect.SneakAPeak));
-        cards.push(new TwistedCard('', SpecialEffect.SwapHand));
-        cards.push(new TwistedCard('', SpecialEffect.SwitchLight));
-        cards.push(new BlackHoleCard(''));
-        cards.push(new BlackHoleCard(''));
+        cards.push(new TwistedCard(0, SpecialEffect.SneakAPeak));
+        cards.push(new TwistedCard(0, SpecialEffect.SwapHand));
+        cards.push(new TwistedCard(0, SpecialEffect.SwitchLight));
+        cards.push(new BlackHoleCard(0));
+        cards.push(new BlackHoleCard(0));
 
         deck = new Deck();
         expect(deck.isEmpty()).toBe(true);
@@ -117,7 +121,7 @@ describe('Entities', () => {
         expect(cards).not.toEqual(deck.getCards());
         expect(deck.getCards()).toHaveLength(cards.length);
 
-        deck.addCard(new Card(''));
+        deck.addCard(new Card(0));
         expect(deck.getCards()).toHaveLength(cards.length + 1);
 
         done();
@@ -155,13 +159,13 @@ describe('Entities', () => {
 
       expect(player.getHand().getCards().length).toBe(0);
 
-      const firstCardToAdd = new Card('');
+      const firstCardToAdd = new Card(0);
 
       player.addToHand(firstCardToAdd);
 
       expect(player.getHand().getCards().length).toBe(1);
 
-      player.addManyToHand([new Card(''), new Card('')]);
+      player.addManyToHand([new Card(0), new Card(0)]);
 
       expect(player.getHand().getCards().length).toBe(3);
 
@@ -189,6 +193,47 @@ describe('Entities', () => {
   });
 
   describe('GameState', () => {
+    test('should throw CardNotInHandException exception', (done) => {
+      expect(() => {
+        const gameState = new GameState(new Table());
+        const testPlayer = new Player('1234', 'test');
+        const testHand = new Hand();
+        const lobby = new Lobby(testPlayer);
+        const testDeck = new Deck();
+        const card1 = new Card(0);
+        const card2 = new Card(0);
+        testPlayer.setHand(testHand);
+        testDeck.addCard(card1);
+        testDeck.addCard(card2);
+        lobby.setDeck(testDeck);
+        gameState.setLobby(lobby);
+        gameState.matchCards(testPlayer, card1, card2);
+      }).toThrow(CardNotInHandException);
+      done();
+    });
+
+    test('should match two cards', (done) => {
+      const gameState = new GameState(new Table());
+      const testPlayer = new Player('1234', 'test');
+      const testHand = new Hand();
+      const lobby = new Lobby(testPlayer);
+      const testDeck = new Deck();
+      const card1 = new Card(0);
+      const card2 = new Card(0);
+      testHand.addCards([card1, card2]);
+      testPlayer.setHand(testHand);
+      testDeck.addCard(card1);
+      testDeck.addCard(card2);
+      lobby.setDeck(testDeck);
+      gameState.setLobby(lobby);
+      gameState.matchCards(testPlayer, card1, card2);
+
+      expect(testPlayer.getHand().getCards().includes(card1)).toBe(false);
+      expect(testPlayer.getHand().getCards().includes(card2)).toBe(false);
+
+      done();
+    });
+
     test('should return the GameState lobby', (done) => {
       const gameState = new GameState(new Table());
       const lobby = new Lobby(new Player('1234', 'test'));

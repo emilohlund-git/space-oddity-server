@@ -9,8 +9,8 @@ export enum SpecialEffect {
 class TwistedCard extends Card {
   private specialEffect: SpecialEffect;
 
-  constructor(graphic: string, specialEffect: SpecialEffect) {
-    super(graphic, CardType.Twisted);
+  constructor(value: number, specialEffect: SpecialEffect) {
+    super(value, CardType.Twisted);
     this.specialEffect = specialEffect;
   }
 

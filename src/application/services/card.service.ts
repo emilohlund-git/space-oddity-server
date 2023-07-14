@@ -12,6 +12,14 @@ export class CardService {
     this.cardRepository.save(card);
   }
 
+  saveMany(cards: Card[]): void {
+    this.cardRepository.saveMany(cards);
+  }
+
+  removeMany(cards: Card[]): void {
+    this.cardRepository.removeMany(cards);
+  }
+
   findById(cardId: string) {
     return this.cardRepository.findById(cardId);
   }

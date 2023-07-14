@@ -44,6 +44,8 @@ class GameOverCommand implements Command {
     if (!isGameOver) {
       throw new GameHasNotEndedException();
     } else {
+      this.gameService.getCardService().removeMany(lobby.getDeck()!.getCards());
+      this.gameService.getLobbyService().remove(lobby.id);
       gameState.endGame();
     }
 

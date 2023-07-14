@@ -23,7 +23,11 @@ describe('CardRepository', () => {
 
   test('should add a card to the repository and then clear', (done) => {
     expect(cardRepository.findAll().length).toBe(0);
-    const card = new Card(randomUUID());
+    const card = new Card(0);
+    cardRepository.save(card);
+    expect(cardRepository.findAll().length).toBe(1);
+    cardRepository.removeMany([card]);
+    expect(cardRepository.findAll().length).toBe(0);
     cardRepository.save(card);
     expect(cardRepository.findAll().length).toBe(1);
     cardRepository.clear();
@@ -32,7 +36,7 @@ describe('CardRepository', () => {
   });
 
   test('should find a card by id', (done) => {
-    let card = new Card(randomUUID());
+    let card = new Card(0);
     cardRepository.save(card);
     expect(cardRepository.findById(card.id)).toBeDefined();
     done();
@@ -40,7 +44,7 @@ describe('CardRepository', () => {
 
   test('should find a card by player', (done) => {
     const testUser = userService.findByUsername('test');
-    const testCard = new Card(randomUUID());
+    const testCard = new Card(0);
     cardRepository.save(testCard);
 
     expect(cardRepository.findByPlayer(testUser!)).toStrictEqual(testUser!.getHand().getCards());

@@ -1,4 +1,5 @@
 import { UUID, randomUUID } from 'crypto';
+import CardNotInHandException from '../../application/exceptions/card-not-in-hand.exception';
 import DeckNotFoundException from '../../application/exceptions/deck-not-found.exception';
 import GameNotInProgressException from '../../application/exceptions/game-not-in-progress.exception';
 import LobbyNotFoundException from '../../application/exceptions/lobby-not-found.exception';
@@ -76,6 +77,19 @@ class GameState {
 
     // Move to the next player's turn
     this.currentPlayerIndex = (this.currentPlayerIndex + 1) % this.lobby.getPlayers().length;
+  }
+
+  public matchCards(player: Player, card1: Card, card2: Card): void {
+    const hand = player.getHand();
+    const cards = hand.getCards();
+
+    if (!cards.includes(card1) || !cards.includes(card2)) {
+      throw new CardNotInHandException();
+    }
+
+    if (card1.getValue() === card2.getValue()) {
+      hand.removeCards([card1, card2]);
+    }
   }
 
   public transferCard(sourcePlayer: Player, targetPlayer: Player, card: Card): void {

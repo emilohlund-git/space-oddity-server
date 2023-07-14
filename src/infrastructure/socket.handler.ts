@@ -6,6 +6,7 @@ import CreateLobbyCommand from '../application/commands/create-lobby.command';
 import GameOverCommand from '../application/commands/game-over.command';
 import JoinLobbyCommand from '../application/commands/join-lobby.command';
 import LeaveLobbyCommand from '../application/commands/leave-lobby.command';
+import MatchCardsCommand from '../application/commands/match-cards.command';
 import PickedCardCommand from '../application/commands/picked-card.command';
 import PlayedCardCommand from '../application/commands/played-card.command';
 import SendMessageCommand from '../application/commands/send-message.command';
@@ -48,6 +49,7 @@ class SocketHandler {
     this.registerCommand('CardDiscarded', CardDiscardedCommand);
     this.registerCommand('GameOver', GameOverCommand);
     this.registerCommand('UserDisconnect', UserDisconnectCommand);
+    this.registerCommand('MatchCards', MatchCardsCommand);
   }
 
   public registerCommand<T extends Command>(

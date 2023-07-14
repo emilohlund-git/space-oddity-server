@@ -5,14 +5,14 @@ import TwistedCard, { SpecialEffect } from '../../src/domain/entities/TwistedCar
 
 export const getShuffledDeck = (): Deck => {
   const cards = <Card[]>[];
-  cards.push(new TwistedCard('', SpecialEffect.SneakAPeak));
-  cards.push(new TwistedCard('', SpecialEffect.SwapHand));
-  cards.push(new TwistedCard('', SpecialEffect.SwitchLight));
-  cards.push(new BlackHoleCard(''));
-  cards.push(new BlackHoleCard(''));
+  cards.push(new TwistedCard(0, SpecialEffect.SneakAPeak));
+  cards.push(new TwistedCard(0, SpecialEffect.SwapHand));
+  cards.push(new TwistedCard(0, SpecialEffect.SwitchLight));
+  cards.push(new BlackHoleCard(0));
+  cards.push(new BlackHoleCard(0));
 
   for (let i = 0; i < 42; i++) {
-    cards.push(new Card(''));
+    cards.push(new Card(0));
   }
 
   const deck = new Deck();
