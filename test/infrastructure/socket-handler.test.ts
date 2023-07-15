@@ -208,6 +208,24 @@ describe('SocketHandler', () => {
       expect(mockNext).toHaveBeenCalledWith(new Error('🌎 Connection rejected: Invalid API key'));
     });
 
+    test('should handle socket error inside executeCommand catch statement', () => {
+      const socketHandler = new SocketHandler(io, gameService);
+      const mockSocket: any = {
+        emit: jest.fn(),
+        disconnect: jest.fn(),
+      };
+      const mockError = new Error('Test error');
+      const mockCreateCommand = jest.fn().mockImplementation(() => {
+        throw mockError;
+      });
+
+      const mockHandleSocketError = jest.spyOn(socketHandler, 'handleSocketError');
+
+      socketHandler.executeCommand(mockSocket, {}, mockCreateCommand);
+
+      expect(mockHandleSocketError).toHaveBeenCalled();
+    });
+
     describe('setCommands', () => {
       test('should set the commands', () => {
         const socketHandler = new SocketHandler(io, gameService);

@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import { Server, Socket } from 'socket.io';
+import { DefaultEventsMap } from 'socket.io/dist/typed-events';
 import CardDiscardedCommand from '../application/commands/card-discarded.command';
 import ChangeTurnCommand from '../application/commands/change-turn.command';
 import CreateLobbyCommand from '../application/commands/create-lobby.command';
@@ -92,15 +93,19 @@ class SocketHandler {
         socket.on(eventName as keyof ClientEvents, (payload: any) => {
           logger.info(`✨ User: ${socket.id} called Event: ${eventName} with payload: ${payload}`);
 
-          try {
-            const command = createCommand(socket, payload);
-            command.execute();
-          } catch (error) {
-            this.handleSocketError(error, socket);
-          }
+          this.executeCommand(socket, payload, createCommand);
         });
       });
     });
+  }
+
+  public executeCommand(socket: Socket, payload: any, createCommand: (socket: Socket<ClientEvents, ServerEvents, DefaultEventsMap, any>, payload: any) => Command) {
+    try {
+      const command = createCommand(socket, payload);
+      command.execute();
+    } catch (error) {
+      this.handleSocketError(error, socket);
+    }
   }
 
   public handleSocketError(error: any, socket: Socket): void {
