@@ -59,6 +59,9 @@ class PlayedCardCommand implements Command {
       throw new TableNotFoundException(`👋 Table: ${tableId} does not exist.`);
     }
 
+    user.removeFromHand(card);
+    table.disposeCard(card);
+
     if (targetUserId) {
       const targetUser = this.gameService.getUserService().findById(targetUserId);
 
@@ -81,10 +84,7 @@ class PlayedCardCommand implements Command {
       }
     }
 
-    user.removeFromHand(card);
-    table.disposeCard(card);
-
-    this.io.to(lobbyId).emit('PlayedCard', card.getSpecialEffect(), userId, targetUserId);
+    this.io.to(lobbyId).emit('PlayedCard', gameState);
   }
 }
 

@@ -25,7 +25,10 @@ class StartGameCommand implements Command {
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);
 
-    const gameState = new GameState(new Table());
+    const table = new Table();
+    this.gameService.getTableService().save(table);
+
+    const gameState = new GameState(table);
     this.gameService.setGameState(gameState);
 
     const lobbyExists = this.gameService.getLobbyService().findById(lobbyId);
