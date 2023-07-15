@@ -146,7 +146,7 @@ describe('Entities', () => {
   });
 
   describe('Player', () => {
-    test('should retrieve a special card from the players hand, undefined is none exists', () => {
+    test('should retrieve a special card from the players hand, undefined if none exists', () => {
       player = new Player(randomUUID(), 'test-player', new Hand());
       const specialCard = new TwistedCard(22, SpecialEffect.SwapHand);
       const specialCard2 = new TwistedCard(23, SpecialEffect.SwitchLight);
@@ -395,6 +395,19 @@ describe('Entities', () => {
       expect(() => {
         gameState.setLobby(undefined);
         gameState.nextTurn();
+      }).toThrow(LobbyNotFoundException);
+
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      const gameState = new GameState(new Table());
+      const lobby = new Lobby(new Player('1234', 'test'));
+      lobby.setDeck(new Deck());
+      gameState.setLobby(undefined);
+
+      expect(() => {
+        gameState.startGame();
       }).toThrow(LobbyNotFoundException);
 
       done();

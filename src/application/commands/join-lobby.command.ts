@@ -20,7 +20,6 @@ class JoinLobbyCommand implements Command {
 
   execute(): void {
     const { lobbyId } = this.payload;
-    console.log(lobbyId);
 
     const payloadValidationRules = createPayloadValidationRules(this.payload);
     validatePayload(this.payload, payloadValidationRules);

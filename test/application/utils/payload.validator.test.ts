@@ -59,11 +59,13 @@ describe('PayloadValidator', () => {
     }).toThrow(InvalidPayloadException);
   });
 
-  it('should return an empty object when the payload shape is empty', () => {
-    const payloadShape = {};
+  it('should return an empty object when the payload shape is not covered', () => {
+    const payloadShape = {
+      test: 1234,
+    };
 
     const rules = createPayloadValidationRules(payloadShape);
 
-    expect(rules).toEqual(payloadShape);
+    expect(rules).toEqual({});
   });
 });
