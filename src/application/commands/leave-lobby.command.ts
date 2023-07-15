@@ -1,6 +1,6 @@
 import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
-import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import { Command } from '../../domain/interfaces/command.interface';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
@@ -14,7 +14,7 @@ class LeaveLobbyCommand implements Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
-    private readonly socket: Socket<ClientEvents, ServerEvents>,
+    private readonly socket: Socket,
     private readonly payload: LeaveLobbyPayload,
   ) { }
 
@@ -36,15 +36,14 @@ class LeaveLobbyCommand implements Command {
       throw new LobbyNotFoundException(`👋 Lobby: ${lobbyId} does not exist.`);
     }
 
-
     lobby.removeUser(user.id);
     this.gameService.getLobbyService().save(lobby);
-    this.socket.leave(lobbyId);
     if (lobby.getPlayers().length === 0) {
       this.gameService.getLobbyService().remove(lobby.id);
     }
 
-    this.io.to(lobbyId).emit('UserLeftLobby', lobby);
+    this.socket.leave(lobbyId);
+    this.socket.broadcast.to(lobbyId).emit('UserLeftLobby', lobby);
   }
 }
 

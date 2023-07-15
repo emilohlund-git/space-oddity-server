@@ -1,5 +1,6 @@
 import Card from './Card';
 import Hand from './Hand';
+import TwistedCard from './TwistedCard';
 import { User } from './User';
 
 class Player extends User {
@@ -27,6 +28,15 @@ class Player extends User {
 
   public setHand(hand: Hand) {
     this.hand = hand;
+  }
+
+  public getTwistedCard(): Card | undefined {
+    for (const card of this.hand.getCards()) {
+      if (card instanceof TwistedCard) {
+        return card;
+      }
+    }
+    return undefined;
   }
 
   public addToHand(card: Card): void {

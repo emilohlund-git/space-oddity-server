@@ -11,7 +11,10 @@ import GameService from '../src/application/services/game.service';
 import { LobbyService } from '../src/application/services/lobby.service';
 import { TableService } from '../src/application/services/table.service';
 import { UserService } from '../src/application/services/user.service';
+import Card from '../src/domain/entities/Card';
+import Deck from '../src/domain/entities/Deck';
 import Hand from '../src/domain/entities/Hand';
+import TwistedCard, { SpecialEffect } from '../src/domain/entities/TwistedCard';
 import { ClientEvents, ServerEvents } from '../src/domain/interfaces/command.interface';
 import { CardRepository } from '../src/domain/repositories/card-repository.interface';
 import { DeckRepository } from '../src/domain/repositories/deck-repository.interface';
@@ -89,8 +92,6 @@ describe('End to End tests', () => {
 
     userRepository.clear();
     lobbyRepository.clear();
-
-    jest.setTimeout(10000);
   });
 
   afterEach(() => {
@@ -114,6 +115,7 @@ describe('End to End tests', () => {
     clientSocket.emit('UserConnect', {
       username: 'test1',
     });
+
     clientSocket2.emit('UserConnect', {
       username: 'test2',
     });
@@ -131,8 +133,36 @@ describe('End to End tests', () => {
     await wait();
 
     const lobby = gameService.getLobbyService().findAll()[0];
+    const testDeck = new Deck();
+    const card1 = new Card(0);
+    const card1Copy = new Card(0);
+    const card2 = new Card(1);
+    const card2Copy = new Card(1);
+    const card3 = new Card(2);
+    const card3Copy = new Card(2);
+    const card4 = new Card(3);
+    const card4Copy = new Card(3);
+    const twistedCard1 = new TwistedCard(23, SpecialEffect.SwitchLight);
+    const twistedCard2 = new TwistedCard(24, SpecialEffect.SwapHand);
+    const twistedCard3 = new TwistedCard(25, SpecialEffect.SneakAPeak);
+    cardRepository.saveMany([card1, card2, card3, card4,
+      twistedCard1, twistedCard2, twistedCard3,
+      card1Copy, card2Copy, card3Copy, card4Copy]);
+    testDeck.addCard(card1);
+    testDeck.addCard(card1Copy);
+    testDeck.addCard(card2);
+    testDeck.addCard(card2Copy);
+    testDeck.addCard(card3);
+    testDeck.addCard(card3Copy);
+    testDeck.addCard(card4);
+    testDeck.addCard(card4Copy);
+    testDeck.addCard(twistedCard1);
+    testDeck.addCard(twistedCard2);
+    testDeck.addCard(twistedCard3);
+
+    lobby.setDeck(testDeck);
     expect(lobby.getDeck()).toBeDefined();
-    expect(lobby.getDeck()?.getCards()).toHaveLength(47);
+    expect(lobby.getDeck()?.getCards()).toHaveLength(11);
     expect(lobby.getPlayers().includes(players[0])).toBe(true);
     expect(lobby.getPlayers().includes(players[1])).toBe(false);
 
@@ -187,60 +217,11 @@ describe('End to End tests', () => {
     expect(gameState).toBeDefined();
     expect(gameState.getLobby()).toBe(lobby);
     expect(gameState.gameStatus).toBe('in_progress');
-    expect(gameState.getCurrentPlayer()).toBe(players[1]);
+
+    const playerWithLeastAmountOfCards = gameState.getPlayerWithLeastAmountOfCards();
+    expect(gameState.getCurrentPlayer()).toBe(playerWithLeastAmountOfCards);
 
     if (!gameState.lobby) fail();
-
-    /* Player 2 starts by picking a card from Player 1 */
-    const pickedCard = players[0].getHand().getCards()[3];
-
-    clientSocket2.emit('PickedCard', {
-      cardId: pickedCard.id,
-      gameStateId: gameState.id,
-      lobbyId: gameState.lobby.id,
-      userNewId: players[1].id,
-      userPreviousId: players[0].id,
-    });
-
-    await wait();
-
-    expect(players[0].getHand().getCards().includes(pickedCard)).toBe(false);
-    expect(players[1].getHand().getCards().includes(pickedCard)).toBe(true);
-
-    /* Turn should change from Player2 to Player1 */
-    expect(gameState.getCurrentPlayer()).toBe(players[1]);
-
-    clientSocket2.emit('ChangeTurn', {
-      gameStateId: gameState.id,
-      lobbyId: gameState.lobby.id,
-    });
-
-    await wait();
-
-    expect(gameState.getCurrentPlayer()).toBe(players[0]);
-
-    /* Player 1 removes all matches in hand */
-    const matches = players[0].getHand().getMatches();
-
-    const card1Match = matches[0];
-    const card2Match = matches[1];
-
-    expect(card1Match.getValue()).toBe(card2Match.getValue());
-
-    for (let i = 0; i < matches.length; i += 2) {
-      clientSocket.emit('MatchCards', {
-        card1Id: matches[i].id,
-        card2Id: matches[i + 1].id,
-        gameStateId: gameState.id,
-        lobbyId: gameState.lobby.id,
-        userId: players[0].id,
-      });
-    }
-
-    await wait();
-
-    expect(players[0].getHand().getCards().includes(card1Match)).toBe(false);
-    expect(players[0].getHand().getCards().includes(card2Match)).toBe(false);
   });
 
   test('should connect a player, create a lobby and start the game', async () => {

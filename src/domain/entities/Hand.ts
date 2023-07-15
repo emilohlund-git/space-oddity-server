@@ -20,7 +20,8 @@ class Hand {
   }
 
   public addCards(cards: Card[]): void {
-    this.cards.push(...cards);
+    for (const card of cards)
+      this.cards.push(card);
   }
 
   public removeCard(card: Card): void {

@@ -4,6 +4,7 @@ import CardNotInHandException from '../../src/application/exceptions/card-not-in
 import DeckNotFoundException from '../../src/application/exceptions/deck-not-found.exception';
 import InsufficientCardsException from '../../src/application/exceptions/insufficient-cards.exception';
 import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
+import NoPlayersInGameException from '../../src/application/exceptions/no-players-in-game.exception';
 import BlackHoleCard from '../../src/domain/entities/BlackHoleCard';
 import Card, { CardType, cardGraphicMapping } from '../../src/domain/entities/Card';
 import Deck from '../../src/domain/entities/Deck';
@@ -145,6 +146,18 @@ describe('Entities', () => {
   });
 
   describe('Player', () => {
+    test('should retrieve a special card from the players hand, undefined is none exists', () => {
+      player = new Player(randomUUID(), 'test-player', new Hand());
+      const specialCard = new TwistedCard(22, SpecialEffect.SwapHand);
+      const specialCard2 = new TwistedCard(23, SpecialEffect.SwitchLight);
+      player.getHand().addCards([new Card(0), new Card(1), specialCard, specialCard2]);
+      expect(player.getTwistedCard()).toBe(specialCard);
+
+      player.setHand(new Hand());
+      player.getHand().addCards([new Card(0), new Card(1)]);
+      expect(player.getTwistedCard()).toBeUndefined();
+    });
+
     test('Should create a player, add a new hand to the player with 5 random cards', (done) => {
       player = new Player(randomUUID(), 'test-player', new Hand());
       player.getHand().addCards(deck.drawCards(5));
@@ -192,7 +205,91 @@ describe('Entities', () => {
     });
   });
 
+  describe('Hand', () => {
+    test('should get a list of all matches in the player\'s hand', () => {
+      const playerHand = new Hand();
+
+      const card1 = new Card(1);
+      const card2 = new Card(1);
+      const card3 = new Card(3);
+      const card4 = new Card(4);
+      const card5 = new Card(5);
+      const card6 = new Card(5);
+
+      playerHand.addCards([card1, card2, card3, card4, card5, card6]);
+
+      const matches = playerHand.getMatches();
+
+      // Assert that all cards in 'matches' are present in the player's hand
+      expect(matches.every((card) => playerHand.getCards().includes(card))).toBe(true);
+
+      // Assert that cards not in 'matches' are not present in the player's hand
+      expect(playerHand.getCards().some((card) => ![card3, card4].includes(card))).toBe(true);
+    });
+  });
+
   describe('GameState', () => {
+    describe('getPlayerWithLeastAmountOfCards', () => {
+      let gameState: GameState;
+      let lobby: Lobby;
+
+      beforeEach(() => {
+        gameState = new GameState(new Table());
+        player = new Player('1234', 'test');
+        lobby = new Lobby(player);
+        lobby.setDeck(new Deck());
+        gameState.setLobby(lobby);
+        gameState.startGame();
+      });
+
+      test('should throw NoPlayersInGameException exception', (done) => {
+        if (!gameState.lobby) fail();
+
+        gameState.lobby.removeUser(player.id);
+
+        expect(gameState.lobby.getPlayers()).toHaveLength(0);
+
+        expect(() => {
+          gameState.getPlayerWithLeastAmountOfCards();
+        }).toThrow(NoPlayersInGameException);
+
+        done();
+      });
+
+      test('should throw LobbyNotFoundException exception', (done) => {
+        expect(() => {
+          gameState.setLobby(undefined);
+          gameState.getPlayerWithLeastAmountOfCards();
+        }).toThrow(LobbyNotFoundException);
+
+        done();
+      });
+    });
+
+    test('should set current player to Player2', (done) => {
+      const gameState = new GameState(new Table());
+      const testPlayer = new Player('1234', 'test', new Hand());
+      const testPlayer2 = new Player('2345', 'test2', new Hand());
+      const lobby = new Lobby(testPlayer);
+      lobby.addUser(testPlayer2);
+      const testDeck = new Deck();
+      const card1 = new Card(0);
+      const card2 = new Card(0);
+      const card3 = new Card(0);
+      testDeck.addCard(card1);
+      testDeck.addCard(card2);
+      testDeck.addCard(card3);
+      lobby.setDeck(testDeck);
+      gameState.setLobby(lobby);
+      gameState.startGame();
+
+      expect(testPlayer.getHand().getCards().length).toBe(2);
+      expect(testPlayer2.getHand().getCards().length).toBe(1);
+      expect(gameState.getCurrentPlayer()).toBe(testPlayer2);
+
+      done();
+    });
+
     test('should throw CardNotInHandException exception', (done) => {
       expect(() => {
         const gameState = new GameState(new Table());

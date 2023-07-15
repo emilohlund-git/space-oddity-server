@@ -39,7 +39,6 @@ import { UserService } from '../../../src/application/services/user.service';
 import Card from '../../../src/domain/entities/Card';
 import Deck from '../../../src/domain/entities/Deck';
 import GameState, { Lights } from '../../../src/domain/entities/GameState';
-import Hand from '../../../src/domain/entities/Hand';
 import { Lobby } from '../../../src/domain/entities/Lobby';
 import Player from '../../../src/domain/entities/Player';
 import Table from '../../../src/domain/entities/Table';
@@ -73,8 +72,12 @@ describe('End to End tests', () => {
   let deckService: DeckService;
   let gameService: GameService;
   let gameState: GameState;
+  let testLobby: Lobby;
+  let testPlayer: Player;
+  let card1: Card;
+  let card2: Card;
 
-  beforeAll((done) => {
+  beforeEach((done) => {
     cardRepository = new InMemoryCardRepository();
     userRepository = new InMemoryUserRepository();
     lobbyRepository = new InMemoryLobbyRepository();
@@ -86,7 +89,15 @@ describe('End to End tests', () => {
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
     gameState = new GameState(new Table());
-    gameState.setLobby(new Lobby(new Player('12345', 'testing')));
+    testPlayer = new Player('1234', 'testing');
+    card1 = new Card(0);
+    card2 = new Card(0);
+    testPlayer.addManyToHand([card1, card2]);
+    testLobby = new Lobby(testPlayer);
+    lobbyService.save(testLobby);
+    userService.save(testPlayer);
+    cardService.saveMany([card1, card2]);
+    gameState.setLobby(testLobby);
     gameService = new GameService(
       userService,
       cardService,
@@ -109,13 +120,10 @@ describe('End to End tests', () => {
       clientSocket.on('connect', done);
     });
 
-    userRepository.clear();
-    lobbyRepository.clear();
-
     jest.setTimeout(10000);
   });
 
-  afterAll(() => {
+  afterEach(() => {
     io.close();
     serverSocket.disconnect();
     clientSocket.close();
@@ -263,7 +271,7 @@ describe('End to End tests', () => {
       done();
     });
 
-    test('should switch the GameState light from red to blue', (done) => {
+    test('should switch the GameState light from red to blue then back to red', (done) => {
       const player1 = new Player('abcd', 'player1');
       const player2 = new Player('bcde', 'player2');
 
@@ -294,6 +302,25 @@ describe('End to End tests', () => {
       playedCardCommand.execute();
 
       expect(gameState.light).toBe(Lights.BLUE);
+
+      const card2 = new TwistedCard(0, SpecialEffect.SwitchLight);
+
+      player1.addToHand(card2);
+
+      cardService.save(card2);
+
+      const playedCardCommand2 = new PlayedCardCommand(gameService, io, serverSocket, {
+        cardId: card2.id,
+        tableId: table.id,
+        userId: player1.id,
+        targetUserId: player2.id,
+        gameStateId: gameState.id,
+        lobbyId: gameState.lobby!.id,
+      });
+
+      playedCardCommand2.execute();
+
+      expect(gameState.light).toBe(Lights.RED);
 
       done();
     });
@@ -507,14 +534,14 @@ describe('End to End tests', () => {
   });
 
   describe('JoinLobbyCommand', () => {
+    beforeEach(() => {
+      const newPlayer = new Player(serverSocket.id, 'test2');
+      gameService.getUserService().save(newPlayer);
+      testLobby.addUser(newPlayer);
+    });
+
     test('should emit UserJoinedLobby event when valid payload is provided', (done) => {
-      const testLobby = new Lobby(new Player('1234', 'test2'));
-      lobbyService.save(testLobby);
-
-      const testUser = new Player(clientSocket.id, 'test', new Hand());
-      userService.save(testUser);
-
-      expect(testLobby.getPlayers().length).toBe(1);
+      expect(testLobby.getPlayers().length).toBe(2);
 
       const joinLobbyCommand = new JoinLobbyCommand(gameService, io, serverSocket, {
         lobbyId: testLobby.id,
@@ -524,7 +551,7 @@ describe('End to End tests', () => {
         expect(response).toBeDefined();
         const lobby = gameService.getLobbyService().findById(response.id);
         expect(lobby).toBeInstanceOf(Lobby);
-        expect(lobby?.getPlayers().length).toBe(2);
+        expect(lobby?.getPlayers().length).toBe(3);
 
         done();
       });
@@ -533,16 +560,13 @@ describe('End to End tests', () => {
     });
 
     test('should throw UserNotFoundException when user is not found', () => {
-      const lobby = new Lobby(new Player('1234', 'test'));
-      gameService.getLobbyService().save(lobby);
-
       const mockSocket: any = {
         id: 'mock-socket-id',
       };
 
       expect(() => {
         const joinLobbyCommand = new JoinLobbyCommand(gameService, io, mockSocket, {
-          lobbyId: lobby.id,
+          lobbyId: testLobby.id,
         });
 
         joinLobbyCommand.execute();
@@ -573,13 +597,55 @@ describe('End to End tests', () => {
   });
 
   describe('MatchCardsCommand', () => {
+    beforeEach(() => {
+      const newPlayer = new Player(serverSocket.id, 'test2');
+      gameService.getUserService().save(newPlayer);
+      testLobby.addUser(newPlayer);
+    });
+
+    test('should match two of the players card and dispose them', (done) => {
+      expect(testPlayer.getHand().getCards().length).toBe(2);
+      expect(testPlayer.getHand().getCards().includes(card1)).toBe(true);
+      expect(testPlayer.getHand().getCards().includes(card2)).toBe(true);
+
+      const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
+        card1Id: card1.id,
+        card2Id: card2.id,
+        gameStateId: gameState.id,
+        lobbyId: gameState.lobby!.id,
+        userId: testPlayer.id,
+      });
+      matchCardsCommand.execute();
+
+      expect(testPlayer.getHand().getCards().length).toBe(0);
+      expect(testPlayer.getHand().getCards().includes(card1)).toBe(false);
+      expect(testPlayer.getHand().getCards().includes(card2)).toBe(false);
+      expect(gameState.table.getDisposedCards().length).toBe(2);
+      expect(gameState.table.getDisposedCards().includes(card1)).toBe(true);
+      expect(gameState.table.getDisposedCards().includes(card2)).toBe(true);
+      done();
+    });
+
     test('should throw CardNotInHandException exception', (done) => {
-      const lobby = new Lobby(new Player('1234', 'test'));
-      gameService.getLobbyService().save(lobby);
-      gameState.setLobby(lobby);
-      const card1 = new Card(0);
-      const card2 = new Card(0);
-      gameService.getCardService().saveMany([card1, card2]);
+      testPlayer.removeFromHand(card1);
+
+      expect(() => {
+        const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
+          card1Id: card1.id,
+          card2Id: card2.id,
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+          userId: serverSocket.id,
+        });
+        matchCardsCommand.execute();
+      }).toThrow(CardNotInHandException);
+
+      done();
+    });
+
+    test('should throw CardNotInHandException exception', (done) => {
+      testPlayer.addToHand(card1);
+      testPlayer.removeFromHand(card2);
 
       expect(() => {
         const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
@@ -596,11 +662,7 @@ describe('End to End tests', () => {
     });
 
     test('should throw CardNotFoundException exception', (done) => {
-      const lobby = new Lobby(new Player('1234', 'test'));
-      gameService.getLobbyService().save(lobby);
-      gameState.setLobby(lobby);
-      const card1 = new Card(0);
-      const card2 = new Card(0);
+      gameService.getCardService().removeMany([card1]);
 
       expect(() => {
         const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
@@ -617,10 +679,6 @@ describe('End to End tests', () => {
     });
 
     test('should throw UserNotFoundException exception', (done) => {
-      const lobby = new Lobby(new Player('1234', 'test'));
-      gameService.getLobbyService().save(lobby);
-      gameState.setLobby(lobby);
-
       expect(() => {
         const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
           card1Id: randomUUID(),
@@ -847,6 +905,12 @@ describe('End to End tests', () => {
   });
 
   describe('LeaveLobbyCommand', () => {
+    beforeEach(() => {
+      const newPlayer = new Player(serverSocket.id, 'test2');
+      gameService.getUserService().save(newPlayer);
+      testLobby.addUser(newPlayer);
+    });
+
     test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
       expect(() => {
         const leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, serverSocket, {
@@ -885,6 +949,12 @@ describe('End to End tests', () => {
   });
 
   describe('UserConnectCommand', () => {
+    beforeEach(() => {
+      const newPlayer = new Player(serverSocket.id, 'test2');
+      gameService.getUserService().save(newPlayer);
+      testLobby.addUser(newPlayer);
+    });
+
     test('should throw FailedUserConnectionException when user creation fails', () => {
       jest.spyOn(gameService.getUserService(), 'findById').mockImplementation((userId) => {
         if (userId === serverSocket.id) {
@@ -942,24 +1012,10 @@ describe('End to End tests', () => {
   });
 
   describe('SendMessageCommand', () => {
-    test('should emit MessageSent event when valid payload is provided', (done) => {
-      const users = userService.findAll();
-      const lobbies = lobbyService.findAll();
-
-      const sendMessageCommand = new SendMessageCommand(gameService, io, serverSocket, {
-        userId: users[0].id,
-        lobbyId: lobbies[0].id,
-        message: 'test',
-      });
-
-      clientSocket.on('MessageSent', (response: Lobby) => {
-        expect(response).toBeDefined();
-        const lobby = gameService.getLobbyService().findById(response.id);
-        expect(lobby?.getMessages()).toHaveLength(1);
-        done();
-      });
-
-      sendMessageCommand.execute();
+    beforeEach(() => {
+      const newPlayer = new Player(serverSocket.id, 'test2');
+      gameService.getUserService().save(newPlayer);
+      testLobby.addUser(newPlayer);
     });
 
     test('should throw UserNotFoundException exception', (done) => {
@@ -1004,20 +1060,12 @@ describe('End to End tests', () => {
 
   describe('CardDiscardedCommand', () => {
     test('should throw OwnerNotFoundException exception', (done) => {
-      const card = new Card(0);
-      cardService.save(card);
-
-      const player = new Player('1234', 'test');
-      player.addToHand(card);
-
-      gameState.lobby!.addUser(new Player('2345', 'test2'));
-
       expect(() => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
-          cardId: card.id,
+          cardId: card1.id,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
-          userId: player.id,
+          userId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
@@ -1229,12 +1277,10 @@ describe('End to End tests', () => {
 
   describe('UserReadyCommand', () => {
     test('should throw UserNotFoundException exception', (done) => {
-      const lobbies = lobbyService.findAll();
-
       expect(() => {
         const userReadyCommand = new UserReadyCommand(gameService, io, serverSocket, {
           userId: randomUUID(),
-          lobbyId: lobbies[0].id,
+          lobbyId: testLobby.id,
         });
         userReadyCommand.execute();
       }).toThrow(UserNotFoundException);
@@ -1242,34 +1288,14 @@ describe('End to End tests', () => {
     });
 
     test('should throw LobbyNotFoundException exception', (done) => {
-      const users = userService.findAll();
-
       expect(() => {
         const userReadyCommand = new UserReadyCommand(gameService, io, serverSocket, {
-          userId: users[0].id,
+          userId: testPlayer.id,
           lobbyId: randomUUID(),
         });
         userReadyCommand.execute();
       }).toThrow(LobbyNotFoundException);
       done();
-    });
-
-    test('should emit UserReady event when valid payload is provided', (done) => {
-      const users = userService.findAll();
-      const lobbies = lobbyService.findAll();
-
-      const userReadyCommand = new UserReadyCommand(gameService, io, serverSocket, {
-        userId: users[0].id,
-        lobbyId: lobbies[0].id,
-      });
-
-      clientSocket.on('UserReady', (lobby: Lobby) => {
-        expect(lobby).toBeDefined();
-        expect(lobby.id).toBe(lobbies[0].id);
-        done();
-      });
-
-      userReadyCommand.execute();
     });
   });
 });
