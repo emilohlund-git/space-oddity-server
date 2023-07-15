@@ -47,9 +47,8 @@ class ChangeTurnCommand implements Command {
     }
 
     gameState.nextTurn();
-    const currentPlayer = gameState.getCurrentPlayer();
 
-    this.io.to(lobbyId).emit('ChangeTurn', currentPlayer.id);
+    this.io.to(lobbyId).emit('ChangeTurn', gameState);
   }
 }
 

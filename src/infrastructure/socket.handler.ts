@@ -91,7 +91,7 @@ class SocketHandler {
 
       Object.entries(this.commandFactory).forEach(([eventName, createCommand]) => {
         socket.on(eventName as keyof ClientEvents, (payload: any) => {
-          logger.debug(`✨ User: ${socket.id} called Event: ${eventName} with payload: ${JSON.stringify(payload)}`);
+          logger.info(`✨ User: ${socket.id} called Event: ${eventName} with payload: ${JSON.stringify(payload)}`);
           this.executeCommand(socket, payload, createCommand);
         });
       });

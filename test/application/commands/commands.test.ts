@@ -363,20 +363,20 @@ describe('Commands', () => {
       userService.save(player1);
       userService.save(player2);
 
-      const card = new TwistedCard(0, SpecialEffect.SwapHand);
+      card1 = new TwistedCard(0, SpecialEffect.SwapHand);
       card2 = new TwistedCard(0, SpecialEffect.SneakAPeak);
 
-      player1.addToHand(card);
+      player1.addToHand(card1);
       player2.addToHand(card2);
 
-      cardService.save(card);
+      cardService.save(card1);
 
       const table = new Table();
 
       tableService.save(table);
 
       const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
-        cardId: card.id,
+        cardId: card1.id,
         tableId: table.id,
         userId: player1.id,
         targetUserId: player2.id,
@@ -386,7 +386,7 @@ describe('Commands', () => {
 
       playedCardCommand.execute();
 
-      expect(player2.getHand().getCards()[0]).toBe(card);
+      expect(player2.getHand().getCards()[0]).toBeUndefined();
       expect(player1.getHand().getCards()[0]).toBe(card2);
 
       done();

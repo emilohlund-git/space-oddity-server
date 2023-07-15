@@ -85,7 +85,7 @@ class PickedCardCommand implements Command {
       gameState.transferCard(previousOwner, newOwner, card);
     }
 
-    this.io.to(lobbyId).emit('PickedCard', userNewId, cardId);
+    this.io.to(lobbyId).emit('PickedCard', gameState);
   }
 }
 
