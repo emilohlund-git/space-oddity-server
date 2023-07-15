@@ -56,12 +56,8 @@ class MatchCardsCommand implements Command {
     }
 
     const userHand = user.getHand().getCards();
-    if (![card1, card2].every(card => userHand.includes(card))) {
-      const missingCardIds = [card1, card2]
-        .filter(card => !userHand.includes(card))
-        .map(card => card.id)
-        .join(' & ');
-      throw new CardNotInHandException(`🃏 Cards ${missingCardIds} are not in the player's hand.`);
+    if (!userHand.includes(card1 || !userHand.includes(card2))) {
+      throw new CardNotInHandException();
     }
 
     user.removeFromHand(card1);

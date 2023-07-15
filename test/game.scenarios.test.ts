@@ -82,14 +82,17 @@ describe('GameScenarios', () => {
     });
 
     it('should distribute cards to players', () => {
-      expect(player1.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby!.getDeck()!.getCards().length / gameState.lobby!.getPlayers().length);
-      expect(player2.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby!.getDeck()!.getCards().length / gameState.lobby!.getPlayers().length);
-      expect(player3.getHand().getCards().length).toBeGreaterThanOrEqual(gameState.lobby!.getDeck()!.getCards().length / gameState.lobby!.getPlayers().length);
+      expect(player1.getHand().getCards().length).toBeGreaterThanOrEqual(3);
+      expect(player2.getHand().getCards().length).toBeGreaterThanOrEqual(3);
+      expect(player3.getHand().getCards().length).toBeGreaterThanOrEqual(3);
     });
 
     it('should be player3 who starts, and then change turn to player1, then player2...', () => {
-      const players = gameState.lobby?.getPlayers();
-      expect(gameState.getCurrentPlayer().getUserName()).toBe(players![3].getUserName());
+      const players = gameState.lobby!.getPlayers();
+
+      expect(gameState.getCurrentPlayer().getUserName()).toBe(
+        players[3].getUserName(),
+      );
 
       for (let i = 0; i < players!.length; i++) {
         gameState.nextTurn();

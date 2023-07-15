@@ -41,7 +41,7 @@ class UserConnectCommand implements Command {
       throw new FailedUserConnectionException(`👋 Failed to connect User: ${this.socket.id}.`);
     }
 
-    this.io.emit('UserConnected', userCreated);
+    this.io.to(this.socket.id).emit('UserConnected', userCreated);
 
     return userCreated;
   }

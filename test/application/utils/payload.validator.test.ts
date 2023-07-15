@@ -64,6 +64,6 @@ describe('PayloadValidator', () => {
 
     const rules = createPayloadValidationRules(payloadShape);
 
-    expect(rules).toEqual({});
+    expect(rules).toEqual(payloadShape);
   });
 });

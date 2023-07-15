@@ -59,7 +59,7 @@ class UserDisconnectCommand implements Command {
 
     this.gameService.getUserService().remove(user.id);
 
-    this.io.emit('UserDisconnected', user);
+    this.io.to(this.socket.id).emit('UserDisconnected', user);
 
     return user;
   }

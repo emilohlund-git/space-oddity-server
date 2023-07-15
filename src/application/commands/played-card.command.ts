@@ -66,23 +66,18 @@ class PlayedCardCommand implements Command {
         throw new UserNotFoundException(`👋 User: ${targetUserId} does not exist.`);
       }
 
-      switch (card.getSpecialEffect()) {
-        case SpecialEffect.SneakAPeak: {
-          // Handled via client side.
-          break;
-        }
-        case SpecialEffect.SwapHand: {
-          const usersHand = user.getHand();
-          const targetHand = targetUser.getHand();
-          targetUser.setHand(usersHand);
-          user.setHand(targetHand);
-          break;
-        }
-        case SpecialEffect.SwitchLight: {
-          const currentLight = gameState.light;
-          gameState.light = currentLight === Lights.RED ? Lights.BLUE : Lights.RED;
-          break;
-        }
+      const specialEffect = card.getSpecialEffect();
+
+      if (specialEffect === SpecialEffect.SwapHand) {
+        const usersHand = user.getHand();
+        const targetHand = targetUser.getHand();
+        targetUser.setHand(usersHand);
+        user.setHand(targetHand);
+      }
+
+      if (specialEffect === SpecialEffect.SwitchLight) {
+        const currentLight = gameState.light;
+        gameState.light = currentLight === Lights.RED ? Lights.BLUE : Lights.RED;
       }
     }
 

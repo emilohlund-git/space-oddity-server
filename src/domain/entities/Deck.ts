@@ -35,29 +35,22 @@ class Deck {
 
   distributeCardsToPlayers(players: Player[]) {
     const numPlayers = players.length;
-    const cardsPerPlayer = Math.floor(this.cards.length / numPlayers);
-    const remainingCards = this.cards.length % numPlayers;
-
     const distributedCards = [];
 
-    for (let i = 0; i < cardsPerPlayer; i++) {
-      for (let j = 0; j < numPlayers; j++) {
-        const player = players[j];
-        const card = this.drawCard();
-        if (card) {
-          player.addToHand(card);
-          distributedCards.push(card);
-        }
-      }
-    }
+    let cardsRemaining = this.cards.length; // Track the number of cards remaining to distribute
+    let currentPlayerIndex = 0; // Track the current player index
 
-    for (let i = 0; i < remainingCards; i++) {
-      const player = players[i];
+    while (cardsRemaining > 0) {
+      const player = players[currentPlayerIndex];
       const card = this.drawCard();
+
       if (card) {
         player.addToHand(card);
         distributedCards.push(card);
+        cardsRemaining--; // Decrease the count of remaining cards
       }
+
+      currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers; // Move to the next player in a round-robin fashion
     }
 
     return distributedCards;

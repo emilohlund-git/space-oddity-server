@@ -3,6 +3,7 @@ import CardNotInHandException from '../../application/exceptions/card-not-in-han
 import DeckNotFoundException from '../../application/exceptions/deck-not-found.exception';
 import GameNotInProgressException from '../../application/exceptions/game-not-in-progress.exception';
 import LobbyNotFoundException from '../../application/exceptions/lobby-not-found.exception';
+import NoPlayersInGameException from '../../application/exceptions/no-players-in-game.exception';
 import Card from './Card';
 import { Lobby } from './Lobby';
 import Player from './Player';
@@ -50,18 +51,10 @@ class GameState {
     deck.distributeCardsToPlayers(this.lobby.getPlayers());
 
     // Find the player with the least amount of cards
-    const players = this.lobby.getPlayers();
-
-    let playerWithLeastCards = players[0];
-    for (const player of players) {
-      if (player.getHand().getCards().length <
-        playerWithLeastCards.getHand().getCards().length) {
-        playerWithLeastCards = player;
-      }
-    }
+    let playerWithLeastCards = this.getPlayerWithLeastAmountOfCards();
 
     // Set the currentPlayerIndex to the index of the player with the least amount of cards
-    this.currentPlayerIndex = players.findIndex((player) => player === playerWithLeastCards);
+    this.currentPlayerIndex = this.lobby.getPlayers().findIndex((player) => player === playerWithLeastCards);
 
     this.gameStatus = GameStatus.InProgress;
   }
@@ -131,6 +124,28 @@ class GameState {
 
   public setLobby(lobby: Lobby | undefined): void {
     this.lobby = lobby;
+  }
+
+  public getPlayerWithLeastAmountOfCards(): Player {
+    if (!this.lobby) {
+      throw new LobbyNotFoundException('Lobby does not exist for GameState');
+    }
+
+    let playerWithLeastAmountOfCards = this.lobby.getPlayers()[0];
+    const players = this.lobby.getPlayers();
+
+    if (players.length < 1) {
+      throw new NoPlayersInGameException();
+    }
+
+    for (const player of players) {
+      if (playerWithLeastAmountOfCards.getHand().getCards().length >
+        player.getHand().getCards().length) {
+        playerWithLeastAmountOfCards = player;
+      }
+    }
+
+    return playerWithLeastAmountOfCards;
   }
 }
 
