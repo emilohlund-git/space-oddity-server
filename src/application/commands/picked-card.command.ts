@@ -3,7 +3,11 @@ import type { Server, Socket } from 'socket.io';
 import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import CardNotFoundException from '../exceptions/card-not-found.exception';
 import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
+import DeckIsEmptyException from '../exceptions/deck-is-empty.exception';
+import DeckNotFoundException from '../exceptions/deck-not-found.exception';
 import GameStateNotFoundException from '../exceptions/game-state-not-found.exception';
+import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
+import PlayerNotInLobbyException from '../exceptions/player-not-in-lobby.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
 import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
@@ -36,11 +40,27 @@ class PickedCardCommand implements Command {
       throw new GameStateNotFoundException();
     }
 
+    const lobby = gameState.getLobby();
+
+    if (!lobby) {
+      throw new LobbyNotFoundException();
+    }
+
+    const deck = lobby.getDeck();
+
+    if (!deck) {
+      throw new DeckNotFoundException();
+    }
+
     const previousOwner = this.gameService.getUserService().findById(userPreviousId);
     const newOwner = this.gameService.getUserService().findById(userNewId);
 
     if (!previousOwner || !newOwner) {
       throw new UserNotFoundException(`👋 ${!previousOwner ? 'Previous owner' : 'New owner'} (${!previousOwner ? userPreviousId : userNewId}) does not exist.`);
+    }
+
+    if (!lobby.getPlayers().includes(previousOwner) || !lobby.getPlayers().includes(newOwner)) {
+      throw new PlayerNotInLobbyException();
     }
 
     const card = this.gameService.getCardService().findById(cardId);
@@ -49,11 +69,21 @@ class PickedCardCommand implements Command {
       throw new CardNotFoundException(`👋 Card: ${cardId} does not exist.`);
     }
 
-    if (!previousOwner.getHand().getCards().includes(card)) {
-      throw new CardNotInHandException(`👋 Card: ${cardId} does not exist in players hand.`);
-    }
+    if (deck.hasCards()) {
+      const drawnCard = deck.drawCard();
 
-    gameState.transferCard(previousOwner, newOwner, card);
+      if (!drawnCard) {
+        throw new DeckIsEmptyException();
+      }
+
+      newOwner.addToHand(drawnCard);
+    } else {
+      if (!previousOwner.getHand().getCards().includes(card)) {
+        throw new CardNotInHandException(`👋 Card: ${cardId} does not exist in players hand.`);
+      }
+
+      gameState.transferCard(previousOwner, newOwner, card);
+    }
 
     this.io.to(lobbyId).emit('PickedCard', userNewId, cardId);
   }

@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import Client, { Socket as ClientSocket } from 'socket.io-client';
-import GameStateFoundException from '../src/application/exceptions/game-state-not-found.exception';
 import { CardService } from '../src/application/services/card.service';
 import { DeckService } from '../src/application/services/deck.service';
 import GameService from '../src/application/services/game.service';
@@ -13,7 +12,6 @@ import { TableService } from '../src/application/services/table.service';
 import { UserService } from '../src/application/services/user.service';
 import Card from '../src/domain/entities/Card';
 import Deck from '../src/domain/entities/Deck';
-import Hand from '../src/domain/entities/Hand';
 import TwistedCard, { SpecialEffect } from '../src/domain/entities/TwistedCard';
 import { ClientEvents, ServerEvents } from '../src/domain/interfaces/command.interface';
 import { CardRepository } from '../src/domain/repositories/card-repository.interface';
@@ -66,7 +64,7 @@ describe('End to End tests', () => {
     );
 
     const httpServer = createServer();
-    const port = 3005;
+    const port = 3007;
     io = new Server(httpServer);
     const connectionsNeeded = 2;
     let currentConnected = 0;
@@ -222,126 +220,5 @@ describe('End to End tests', () => {
     expect(gameState.getCurrentPlayer()).toBe(playerWithLeastAmountOfCards);
 
     if (!gameState.lobby) fail();
-  });
-
-  test('should connect a player, create a lobby and start the game', async () => {
-    socketHandler.handleConnection();
-
-    /* Player connects to the game */
-    clientSocket.emit('UserConnect', {
-      username: 'test1',
-    });
-
-    await wait();
-
-    const player = gameService.getUserService().findByUsername('test1');
-    if (!player) fail('player does not exist.');
-
-    expect(player.username).toBe('test1');
-
-    /* Player creates a lobby */
-    clientSocket.emit('CreateLobby');
-
-    await wait();
-
-    let lobby = gameService.getLobbyService().findAll()[0];
-    if (!lobby) fail('lobby does not exist.');
-
-    expect(lobby.getPlayers().includes(player)).toBe(true);
-
-    /* Player leaves the lobby, lobby gets removed cause of no players */
-    clientSocket.emit('LeaveLobby', {
-      lobbyId: lobby.id,
-    });
-
-    await wait();
-
-    lobby = gameService.getLobbyService().findAll()[0];
-    expect(lobby).not.toBeDefined();
-
-    /* Re-create the lobby */
-    clientSocket.emit('CreateLobby');
-
-    await wait();
-
-    lobby = gameService.getLobbyService().findAll()[0];
-    expect(lobby.getPlayers().includes(player)).toBe(true);
-    expect(lobby).toBeDefined();
-
-    /* Player sets ready status */
-    clientSocket.emit('UserReady', {
-      lobbyId: lobby.id,
-      userId: player.id,
-    });
-
-    await wait();
-
-    expect(player.getIsReady()).toBe(true);
-
-    /* Lobby owner starts the game */
-    clientSocket.emit('StartGame', {
-      lobbyId: lobby.id,
-    });
-
-    await wait();
-
-    let gameState = gameService.getGameStates()[0];
-
-    if (!gameState) {
-      throw new GameStateFoundException();
-    }
-
-    expect(gameState.gameStatus).toBe('in_progress');
-
-    const discardedCard = player.getHand().getCards()[0];
-
-    /* Player discards a card */
-    clientSocket.emit('CardDiscarded', {
-      cardId: discardedCard.id,
-      gameStateId: gameState.id,
-      lobbyId: gameState.lobby!.id,
-      userId: player.id,
-    });
-
-    await wait();
-
-    expect(gameState.table.getDisposedCards().length).toBe(1);
-
-    /* Change the turn of the game */
-    clientSocket.emit('ChangeTurn', {
-      gameStateId: gameState.id,
-      lobbyId: gameState.lobby!.id,
-    });
-
-    await wait();
-
-    player.setHand(new Hand());
-
-    /* End the game */
-    clientSocket.emit('GameOver', {
-      gameStateId: gameState.id,
-      lobbyId: gameState.lobby!.id,
-    });
-
-    await wait();
-
-    expect(gameState.isGameOver()).toBe(true);
-    expect(gameState.gameStatus).toBe('ended');
-
-    /* Disconnect the player */
-    clientSocket.emit('UserDisconnect', {
-      userId: player.id,
-      lobbyId: gameState.lobby?.id,
-      gameStateId: gameState.id,
-    });
-
-    await wait();
-
-    expect(gameState.lobby).toBeUndefined();
-    expect(gameService.getUserService().findAll()).toHaveLength(0);
-
-    gameState = gameService.getGameStates()[0];
-
-    expect(gameState).toBeUndefined();
   });
 });

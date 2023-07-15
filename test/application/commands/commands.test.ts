@@ -20,6 +20,8 @@ import UserDisconnectCommand from '../../../src/application/commands/user-discon
 import UserReadyCommand from '../../../src/application/commands/user-ready.command';
 import CardNotFoundException from '../../../src/application/exceptions/card-not-found.exception';
 import CardNotInHandException from '../../../src/application/exceptions/card-not-in-hand.exception';
+import DeckIsEmptyException from '../../../src/application/exceptions/deck-is-empty.exception';
+import DeckNotFoundException from '../../../src/application/exceptions/deck-not-found.exception';
 import FailedUserConnectionException from '../../../src/application/exceptions/failed-user-connection.exception';
 import GameHasNotEndedException from '../../../src/application/exceptions/game-has-ended.exception';
 import GameStateNotFoundException from '../../../src/application/exceptions/game-state-not-found.exception';
@@ -28,6 +30,7 @@ import LobbyNotFoundException from '../../../src/application/exceptions/lobby-no
 import NoPlayersInGameException from '../../../src/application/exceptions/no-players-in-game.exception';
 import NotYourTurnException from '../../../src/application/exceptions/not-your-turn.exception';
 import OwnerNotFoundException from '../../../src/application/exceptions/owner-not-found.exception';
+import PlayerNotInLobbyException from '../../../src/application/exceptions/player-not-in-lobby.exception';
 import TableNotFoundException from '../../../src/application/exceptions/table-not-found.exception';
 import UserNotFoundException from '../../../src/application/exceptions/user-not-found.exception';
 import { CardService } from '../../../src/application/services/card.service';
@@ -56,7 +59,7 @@ import { InMemoryUserRepository } from '../../../src/infrastructure/repositories
 import { getShuffledDeck } from '../../utils/test.utils';
 dotenv.config();
 
-describe('End to End tests', () => {
+describe('Commands', () => {
   let io: Server;
   let serverSocket: ServerSocket;
   let clientSocket: ClientSocket;
@@ -110,7 +113,7 @@ describe('End to End tests', () => {
 
     const httpServer = createServer();
     io = new Server(httpServer);
-    const port = 3006;
+    const port = 3005;
 
     httpServer.listen(port, () => {
       clientSocket = Client(`http://localhost:${port}`);
@@ -119,8 +122,6 @@ describe('End to End tests', () => {
       });
       clientSocket.on('connect', done);
     });
-
-    jest.setTimeout(10000);
   });
 
   afterEach(() => {
@@ -143,6 +144,36 @@ describe('End to End tests', () => {
   });
 
   describe('ChangeTurnCommand', () => {
+    test('should change turn from player1 to player2', (done) => {
+      gameState.currentPlayerIndex = 0;
+
+      const player1 = new Player(serverSocket.id, 'test1');
+      const player2 = new Player('2', 'test2');
+
+      const lobby = new Lobby(player1);
+      lobby.addUser(player2);
+      lobby.setDeck(new Deck());
+
+      gameState.setLobby(lobby);
+
+      testLobby.addUser(player1);
+
+      gameState.startGame();
+
+      expect(gameState.getCurrentPlayer()).toBe(player1);
+
+      const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
+        gameStateId: gameState.id,
+        lobbyId: gameState.lobby!.id,
+      });
+
+      changeTurnCommand.execute();
+
+      expect(gameState.getCurrentPlayer()).toBe(player2);
+
+      done();
+    });
+
     test('should throw GameStateNotFoundException exception', (done) => {
       expect(() => {
         const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
@@ -303,7 +334,7 @@ describe('End to End tests', () => {
 
       expect(gameState.light).toBe(Lights.BLUE);
 
-      const card2 = new TwistedCard(0, SpecialEffect.SwitchLight);
+      card2 = new TwistedCard(0, SpecialEffect.SwitchLight);
 
       player1.addToHand(card2);
 
@@ -333,7 +364,7 @@ describe('End to End tests', () => {
       userService.save(player2);
 
       const card = new TwistedCard(0, SpecialEffect.SwapHand);
-      const card2 = new TwistedCard(0, SpecialEffect.SneakAPeak);
+      card2 = new TwistedCard(0, SpecialEffect.SneakAPeak);
 
       player1.addToHand(card);
       player2.addToHand(card2);
@@ -736,6 +767,207 @@ describe('End to End tests', () => {
   });
 
   describe('PickedCardCommand', () => {
+    test('should draw a card from the deck instead of from the player', (done) => {
+      const player1 = new Player('abcd', 'player1');
+      const player2 = new Player('bcde', 'player2');
+
+      userService.save(player1);
+      userService.save(player2);
+
+      const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+
+      player1.addToHand(card);
+
+      cardService.save(card);
+
+      const table = new Table();
+
+      tableService.save(table);
+
+      const testDeck = new Deck();
+      const testCard = new Card(0);
+
+      cardService.save(testCard);
+
+      testDeck.addCard(testCard);
+
+      testLobby.setDeck(testDeck);
+
+      testLobby.addUser(player1);
+      testLobby.addUser(player2);
+
+      gameState.setLobby(testLobby);
+
+      expect(player1.getHand().getCards().includes(testCard)).toBe(false);
+      expect(player2.getHand().getCards().includes(testCard)).toBe(false);
+      expect(testDeck.getCards().includes(testCard)).toBe(true);
+
+      const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
+        cardId: testCard.id,
+        gameStateId: gameState.id,
+        lobbyId: gameState.lobby!.id,
+        userNewId: player1.id,
+        userPreviousId: player2.id,
+      });
+
+      pickedCardCommand.execute();
+
+      expect(player1.getHand().getCards().includes(testCard)).toBe(true);
+      expect(player2.getHand().getCards().includes(testCard)).toBe(false);
+      expect(testDeck.getCards().includes(testCard)).toBe(false);
+      done();
+    });
+
+    test('should throw DeckNotFoundException exception', (done) => {
+      expect(() => {
+        const player1 = new Player('abcd', 'player1');
+        const player2 = new Player('bcde', 'player2');
+
+        userService.save(player1);
+        userService.save(player2);
+
+        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+
+        player1.addToHand(card);
+
+        cardService.save(card);
+
+        const table = new Table();
+
+        tableService.save(table);
+
+        gameState.setLobby(testLobby);
+
+        const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+          userNewId: player1.id,
+          userPreviousId: player2.id,
+        });
+
+        pickedCardCommand.execute();
+      }).toThrow(DeckNotFoundException);
+      done();
+    });
+
+    test('should throw LobbyNotFoundException exception', (done) => {
+      expect(() => {
+        const player1 = new Player('abcd', 'player1');
+        const player2 = new Player('bcde', 'player2');
+
+        userService.save(player1);
+        userService.save(player2);
+
+        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+
+        player1.addToHand(card);
+
+        cardService.save(card);
+
+        const table = new Table();
+
+        tableService.save(table);
+
+        testLobby.setDeck(new Deck());
+
+        gameState.setLobby(undefined);
+
+        const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          gameStateId: gameState.id,
+          lobbyId: randomUUID(),
+          userNewId: player1.id,
+          userPreviousId: player2.id,
+        });
+
+        pickedCardCommand.execute();
+      }).toThrow(LobbyNotFoundException);
+      done();
+    });
+
+    test('should throw DeckIsEmptyException exception', (done) => {
+      expect(() => {
+        const player1 = new Player('abcd', 'player1');
+        const player2 = new Player('bcde', 'player2');
+
+        userService.save(player1);
+        userService.save(player2);
+
+        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+
+        player1.addToHand(card);
+
+        cardService.save(card);
+
+        const table = new Table();
+
+        tableService.save(table);
+
+        const mockDeck = {
+          hasCards: jest.fn().mockReturnValue(true),
+          drawCard: jest.fn(),
+          distributeCardsToPlayers: jest.fn(),
+        } as any;
+
+        testLobby.setDeck(mockDeck);
+        testLobby.addUser(player1);
+        testLobby.addUser(player2);
+
+        player2.addToHand(card);
+
+        gameState.startGame();
+
+        const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+          userNewId: player1.id,
+          userPreviousId: player2.id,
+        });
+
+        mockDeck.hasCards.mockReturnValueOnce(true);
+
+        pickedCardCommand.execute();
+
+        expect(mockDeck.hasCards).toHaveBeenCalled();
+      }).toThrow(DeckIsEmptyException);
+      done();
+    });
+
+    test('should throw PlayerNotInLobbyException exception', (done) => {
+      expect(() => {
+        const player1 = new Player('abcd', 'player1');
+        const player2 = new Player('bcde', 'player2');
+
+        userService.save(player1);
+        userService.save(player2);
+
+        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+
+        player1.addToHand(card);
+
+        cardService.save(card);
+
+        const table = new Table();
+
+        tableService.save(table);
+
+        testLobby.setDeck(new Deck());
+
+        const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
+          cardId: card.id,
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+          userNewId: player1.id,
+          userPreviousId: player2.id,
+        });
+
+        pickedCardCommand.execute();
+      }).toThrow(PlayerNotInLobbyException);
+      done();
+    });
+
     test('player1 should take a card from player2s hand', (done) => {
       const player1 = new Player('abcd', 'player1');
       const player2 = new Player('bcde', 'player2');
@@ -754,6 +986,8 @@ describe('End to End tests', () => {
       tableService.save(table);
 
       const lobby = new Lobby(player1);
+
+      lobby.addUser(player2);
 
       const deck = new Deck();
 
@@ -813,6 +1047,7 @@ describe('End to End tests', () => {
     });
 
     test('should throw UserNotFoundException exception', (done) => {
+      testLobby.setDeck(new Deck());
       const testCard = new Card(0);
       cardService.save(testCard);
 
@@ -854,6 +1089,8 @@ describe('End to End tests', () => {
 
     test('should throw CardNotInHandException when providing non-existing cardId', (done) => {
       expect(() => {
+        testLobby.setDeck(new Deck());
+
         const testCard = new Card(0);
         cardService.save(testCard);
 
@@ -865,6 +1102,9 @@ describe('End to End tests', () => {
 
         userService.save(previousOwner);
         userService.save(newOwner);
+
+        testLobby.addUser(previousOwner);
+        testLobby.addUser(newOwner);
 
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
           cardId: testCard.id,
@@ -881,6 +1121,8 @@ describe('End to End tests', () => {
 
     test('should throw CardNotFoundException when providing non-existing cardId', (done) => {
       expect(() => {
+        testLobby.setDeck(new Deck());
+
         const previousOwnerId = randomUUID();
         const newOwnerId = randomUUID();
 
@@ -889,6 +1131,9 @@ describe('End to End tests', () => {
 
         userService.save(previousOwner);
         userService.save(newOwner);
+
+        testLobby.addUser(previousOwner);
+        testLobby.addUser(newOwner);
 
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
           cardId: randomUUID(),
@@ -909,6 +1154,67 @@ describe('End to End tests', () => {
       const newPlayer = new Player(serverSocket.id, 'test2');
       gameService.getUserService().save(newPlayer);
       testLobby.addUser(newPlayer);
+    });
+
+    test('should remove a Player from the lobby and then delete the lobby', (done) => {
+      const mockSocket = {
+        id: '1',
+        leave: () => { },
+        broadcast: {
+          to: () => ({
+            emit: () => { },
+          }),
+        },
+      } as any;
+
+      userService.remove(serverSocket.id);
+
+      const player = new Player('1', 'test');
+      gameService.getUserService().save(player);
+
+      const lobby = new Lobby(player);
+      lobbyService.save(lobby);
+
+      expect(lobby.getPlayers().includes(player)).toBe(true);
+
+      const leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, mockSocket, {
+        lobbyId: lobby.id,
+      });
+
+      leaveLobbyCommand.execute();
+
+      expect(lobby.getPlayers().includes(player)).toBe(false);
+      expect(lobbyService.findById(lobby.id)).toBeUndefined();
+
+      done();
+    });
+
+    test('should remove a Player from the lobby', (done) => {
+      const mockSocket = {
+        id: '1',
+        leave: () => { },
+        broadcast: {
+          to: () => ({
+            emit: () => { },
+          }),
+        },
+      } as any;
+
+      const player = new Player('1', 'test');
+      gameService.getUserService().save(player);
+      testLobby.addUser(player);
+
+      expect(testLobby.getPlayers().includes(player)).toBe(true);
+
+      const leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, mockSocket, {
+        lobbyId: testLobby.id,
+      });
+
+      leaveLobbyCommand.execute();
+
+      expect(testLobby.getPlayers().includes(player)).toBe(false);
+
+      done();
     });
 
     test('should throw InvalidPayloadException when passing non UUID lobby id', (done) => {
@@ -1059,6 +1365,26 @@ describe('End to End tests', () => {
   });
 
   describe('CardDiscardedCommand', () => {
+    test('should discard a card', (done) => {
+      expect(gameState.table.getDisposedCards()).toHaveLength(0);
+
+      const player = new Player(serverSocket.id, 'test');
+      testLobby.addUser(player);
+
+      const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
+        cardId: card1.id,
+        gameStateId: gameState.id,
+        lobbyId: gameState.lobby!.id,
+        userId: serverSocket.id,
+      });
+
+      cardDiscardedCommand.execute();
+
+      expect(gameState.table.getDisposedCards()).toHaveLength(1);
+
+      done();
+    });
+
     test('should throw OwnerNotFoundException exception', (done) => {
       expect(() => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
@@ -1206,6 +1532,31 @@ describe('End to End tests', () => {
   });
 
   describe('GameOverCommand', () => {
+    test('should end the game', (done) => {
+      const player = new Player('', 'test');
+
+      const lobby = new Lobby(player);
+      lobby.setDeck(new Deck());
+      lobby.addUser(player);
+
+      lobbyService.save(lobby);
+
+      gameState.setLobby(lobby);
+
+      expect(gameState.gameStatus).toBe('not_started');
+
+      const gameOverCommand = new GameOverCommand(gameService, io, serverSocket, {
+        lobbyId: gameState.lobby!.id,
+        gameStateId: gameState.id,
+      });
+
+      gameOverCommand.execute();
+
+      expect(gameState.gameStatus).toBe('ended');
+
+      done();
+    });
+
     test('should throw GameHasNotEndedException exception', (done) => {
       const player = new Player('', 'test');
       player.addToHand(new Card(0));
