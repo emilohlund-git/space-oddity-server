@@ -69,7 +69,7 @@ describe('SocketHandler', () => {
 
     const httpServer = createServer();
     io = new Server(httpServer);
-    const port = 3002;
+    const port = 3006;
 
     httpServer.listen(port, () => {
       clientSocket = Client(`http://localhost:${port}`);

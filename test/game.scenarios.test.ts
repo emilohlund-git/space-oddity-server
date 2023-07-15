@@ -91,10 +91,10 @@ describe('GameScenarios', () => {
       const players = gameState.lobby!.getPlayers();
 
       expect(gameState.getCurrentPlayer().getUserName()).toBe(
-        players[3].getUserName(),
+        players[0].getUserName(),
       );
 
-      for (let i = 0; i < players!.length; i++) {
+      for (let i = 1; i < players!.length; i++) {
         gameState.nextTurn();
         expect(gameState.getCurrentPlayer().getUserName()).toBe(players![i].getUserName());
       }

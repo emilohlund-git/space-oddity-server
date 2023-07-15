@@ -12,6 +12,10 @@ class Deck {
     this.cards = [];
   }
 
+  public hasCards(): boolean {
+    return this.cards.length > 0;
+  }
+
   public getCards(): Card[] {
     return this.cards;
   }
@@ -34,26 +38,17 @@ class Deck {
   }
 
   distributeCardsToPlayers(players: Player[]) {
-    const numPlayers = players.length;
-    const distributedCards = [];
+    const numCardsPerPlayer = 3;
 
-    let cardsRemaining = this.cards.length; // Track the number of cards remaining to distribute
-    let currentPlayerIndex = 0; // Track the current player index
+    for (let i = 0; i < numCardsPerPlayer; i++) {
+      for (const player of players) {
+        const card = this.drawCard();
 
-    while (cardsRemaining > 0) {
-      const player = players[currentPlayerIndex];
-      const card = this.drawCard();
-
-      if (card) {
-        player.addToHand(card);
-        distributedCards.push(card);
-        cardsRemaining--; // Decrease the count of remaining cards
+        if (card) {
+          player.addToHand(card);
+        }
       }
-
-      currentPlayerIndex = (currentPlayerIndex + 1) % numPlayers; // Move to the next player in a round-robin fashion
     }
-
-    return distributedCards;
   }
 
   public shuffle(): void {
