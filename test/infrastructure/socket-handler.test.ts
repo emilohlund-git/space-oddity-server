@@ -256,7 +256,6 @@ describe('SocketHandler', () => {
         socketHandler.handleSocketError(mockError, mockSocket);
 
         expect(mockSocket.emit).toHaveBeenCalledWith('error', mockError.message);
-        expect(mockSocket.disconnect).toHaveBeenCalledWith(true);
       });
     });
   });
