@@ -3,8 +3,8 @@ import type { Server, Socket } from 'socket.io';
 import GameState from '../../domain/entities/GameState';
 import Table from '../../domain/entities/Table';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import GameService from '../services/game.service';
+import { EntityValidator } from '../utils/entity.validator';
 import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type StartGamePayload = {
@@ -18,7 +18,7 @@ class StartGameCommand extends Command {
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: StartGamePayload,
   ) {
-    super(payload);
+    super(payload, new EntityValidator());
   }
 
   execute(): void {
@@ -33,13 +33,10 @@ class StartGameCommand extends Command {
     const gameState = new GameState(table);
     this.gameService.setGameState(gameState);
 
-    const lobbyExists = this.gameService.getLobbyService().findById(lobbyId);
+    const lobby = this.gameService.getLobbyService().findById(lobbyId);
+    this.entityValidator.validateLobbyExists(lobby);
 
-    if (!lobbyExists) {
-      throw new LobbyNotFoundException('Unable to start game, lobby does not exist.');
-    }
-
-    gameState.setLobby(lobbyExists);
+    gameState.setLobby(lobby);
     gameState.startGame();
 
     if (gameState.lobby) {

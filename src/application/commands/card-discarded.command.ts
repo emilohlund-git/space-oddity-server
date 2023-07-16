@@ -2,11 +2,7 @@ import { UUID } from 'crypto';
 import { Server, Socket } from 'socket.io';
 import GameService from '../../application/services/game.service';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
-import GameStateNotFoundException from '../exceptions/game-state-not-found.exception';
-import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
-import NoPlayersInGameException from '../exceptions/no-players-in-game.exception';
-import OwnerNotFoundException from '../exceptions/owner-not-found.exception';
+import { EntityValidator } from '../utils/entity.validator';
 
 export type CardDiscardedPayload = {
   gameStateId: UUID;
@@ -22,37 +18,25 @@ class CardDiscardedCommand extends Command {
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: CardDiscardedPayload,
   ) {
-    super(payload);
+    super(payload, new EntityValidator());
   }
 
   public execute(): void {
     const { gameStateId, cardId, lobbyId, userId } = this.payload;
 
     const gameState = this.gameService.getGameState(gameStateId);
+    this.entityValidator.validateGameStateExists(gameState);
 
-    if (!gameState) {
-      throw new GameStateNotFoundException();
-    }
+    this.entityValidator.validateLobbyExists(gameState.lobby);
 
-    if (!gameState.lobby) {
-      throw new LobbyNotFoundException('Lobby does not exist for GameState');
-    }
-
-    if (gameState.lobby.getPlayers().length === 0) {
-      throw new NoPlayersInGameException();
-    }
+    this.entityValidator.validateLobbyHasPlayers(gameState.lobby);
 
     const owner = gameState.lobby.getPlayers().find((u) => u.id === userId);
+    this.entityValidator.validatePlayerExists(owner);
 
-    if (!owner) {
-      throw new OwnerNotFoundException();
-    }
-
-    const card = gameState.getCurrentPlayer().getHand().getCard(cardId);
-
-    if (!card) {
-      throw new CardNotInHandException();
-    }
+    const card = this.gameService.getCardService().findById(cardId);
+    this.entityValidator.validateCardExists(card);
+    this.entityValidator.validateCardInHand(owner, card);
 
     owner.removeFromHand(card);
     gameState.table.disposeCard(card);

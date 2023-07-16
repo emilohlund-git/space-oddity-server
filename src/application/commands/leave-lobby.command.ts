@@ -1,9 +1,8 @@
 import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { Command } from '../../domain/interfaces/command.interface';
-import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
-import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
+import { EntityValidator } from '../utils/entity.validator';
 
 export type LeaveLobbyPayload = {
   lobbyId: UUID;
@@ -16,23 +15,17 @@ class LeaveLobbyCommand extends Command {
     private readonly socket: Socket,
     private readonly payload: LeaveLobbyPayload,
   ) {
-    super(payload);
+    super(payload, new EntityValidator());
   }
 
   execute(): void {
     const { lobbyId } = this.payload;
 
     const user = this.gameService.getUserService().findById(this.socket.id);
-
-    if (!user) {
-      throw new UserNotFoundException(`👋 User: ${this.socket.id} does not exist.`);
-    }
+    this.entityValidator.validatePlayerExists(user);
 
     const lobby = this.gameService.getLobbyService().findById(lobbyId);
-
-    if (!lobby) {
-      throw new LobbyNotFoundException(`👋 Lobby: ${lobbyId} does not exist.`);
-    }
+    this.entityValidator.validateLobbyExists(lobby);
 
     lobby.lastActivityTime = Date.now();
     lobby.removeUser(user.id);

@@ -2,8 +2,8 @@ import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { logger } from '../../configurations/logger.config';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import FailedUserConnectionException from '../exceptions/failed-user-connection.exception';
 import GameService from '../services/game.service';
+import { EntityValidator } from '../utils/entity.validator';
 
 export type UserDisconnectPayload = {
   userId: string;
@@ -18,7 +18,7 @@ class UserDisconnectCommand extends Command {
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: UserDisconnectPayload,
   ) {
-    super(payload);
+    super(payload, new EntityValidator());
   }
 
   execute(): any {
@@ -27,10 +27,7 @@ class UserDisconnectCommand extends Command {
     logger.info(`👤 ${userId} just disconnected from the server.`);
 
     const user = this.gameService.getUserService().findById(userId);
-
-    if (!user) {
-      throw new FailedUserConnectionException(`👋 User: ${userId} does not exist.`);
-    }
+    this.entityValidator.validatePlayerExists(user);
 
     if (gameStateId) {
       const gameState = this.gameService.getGameState(gameStateId);
@@ -46,12 +43,11 @@ class UserDisconnectCommand extends Command {
 
     if (lobbyId) {
       const lobby = this.gameService.getLobbyService().findById(lobbyId);
+      this.entityValidator.validateLobbyExists(lobby);
 
-      if (lobby) {
-        lobby?.removeUser(userId);
-        if (lobby?.getPlayers().length === 0) {
-          this.gameService.getLobbyService().remove(lobby.id);
-        }
+      lobby.removeUser(userId);
+      if (lobby.getPlayers().length === 0) {
+        this.gameService.getLobbyService().remove(lobby.id);
       }
     }
 

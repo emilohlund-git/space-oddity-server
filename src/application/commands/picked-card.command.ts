@@ -1,15 +1,8 @@
 import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import CardNotFoundException from '../exceptions/card-not-found.exception';
-import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
-import DeckIsEmptyException from '../exceptions/deck-is-empty.exception';
-import DeckNotFoundException from '../exceptions/deck-not-found.exception';
-import GameStateNotFoundException from '../exceptions/game-state-not-found.exception';
-import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
-import PlayerNotInLobbyException from '../exceptions/player-not-in-lobby.exception';
-import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
+import { EntityValidator } from '../utils/entity.validator';
 
 export type PickedCardPayload = {
   userPreviousId: string;
@@ -26,59 +19,41 @@ class PickedCardCommand extends Command {
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: PickedCardPayload,
   ) {
-    super(payload);
+    super(payload, new EntityValidator());
   }
 
   execute(): void {
     const { lobbyId, gameStateId, userPreviousId, userNewId, cardId } = this.payload;
 
     const gameState = this.gameService.getGameState(gameStateId);
-
-    if (!gameState) {
-      throw new GameStateNotFoundException();
-    }
+    this.entityValidator.validateGameStateExists(gameState);
 
     const lobby = gameState.getLobby();
-
-    if (!lobby) {
-      throw new LobbyNotFoundException();
-    }
+    this.entityValidator.validateLobbyExists(lobby);
 
     const deck = lobby.getDeck();
-
-    if (!deck) {
-      throw new DeckNotFoundException();
-    }
+    this.entityValidator.validateDeckExists(deck);
 
     const previousOwner = this.gameService.getUserService().findById(userPreviousId);
+    this.entityValidator.validatePlayerExists(previousOwner);
+
     const newOwner = this.gameService.getUserService().findById(userNewId);
+    this.entityValidator.validatePlayerExists(newOwner);
 
-    if (!previousOwner || !newOwner) {
-      throw new UserNotFoundException(`👋 ${!previousOwner ? 'Previous owner' : 'New owner'} (${!previousOwner ? userPreviousId : userNewId}) does not exist.`);
-    }
-
-    if (!lobby.getPlayers().includes(previousOwner) || !lobby.getPlayers().includes(newOwner)) {
-      throw new PlayerNotInLobbyException();
-    }
+    this.entityValidator.validatePlayerInLobby(lobby, newOwner);
+    this.entityValidator.validatePlayerInLobby(lobby, previousOwner);
 
     const card = this.gameService.getCardService().findById(cardId);
-
-    if (!card) {
-      throw new CardNotFoundException(`👋 Card: ${cardId} does not exist.`);
-    }
+    this.entityValidator.validateCardExists(card);
 
     if (deck.hasCards()) {
       const drawnCard = deck.drawCard();
 
-      if (!drawnCard) {
-        throw new DeckIsEmptyException();
-      }
+      this.entityValidator.validateCardExists(drawnCard);
 
       newOwner.addToHand(drawnCard);
     } else {
-      if (!previousOwner.getHand().getCards().includes(card)) {
-        throw new CardNotInHandException(`👋 Card: ${cardId} does not exist in players hand.`);
-      }
+      this.entityValidator.validateCardInHand(previousOwner, card);
 
       gameState.transferCard(previousOwner, newOwner, card);
     }
