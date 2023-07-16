@@ -8,7 +8,9 @@ class MockCommand extends Command {
     super(payload);
   }
 
-  execute(): void { }
+  execute(): void {
+    throw new Error('Test');
+  }
 }
 
 describe('Command', () => {
@@ -28,6 +30,12 @@ describe('Command', () => {
     expect(command).toBeDefined();
     expect(createPayloadValidationRules).toHaveBeenCalledWith(payload);
     expect(validatePayload).toHaveBeenCalledWith(payload, payloadValidationRules);
+  });
+
+  it('should have thrown an error on execute', () => {
+    const command = new MockCommand(payload);
+
+    expect(() => command.execute()).toThrow(Error);
   });
 
   it('should have an execute method', () => {
