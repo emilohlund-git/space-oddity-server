@@ -16,6 +16,10 @@ export class UserService {
     this.userRepository.remove(userId);
   }
 
+  public removeMany(players: Player[]) {
+    this.userRepository.removeMany(players);
+  }
+
   public findById(userId: string) {
     return this.userRepository.findById(userId);
   }

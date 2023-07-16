@@ -3,7 +3,6 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Sonarcloud Status](https://sonarcloud.io/api/project_badges/measure?project=emilohlund-git_space-oddity-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=emilohlund-git_space-oddity-server)
-[![SonarCloud Coverage](https://sonarcloud.io/api/project_badges/measure?project=emilohlund-git_space-oddity-server&metric=coverage)](https://sonarcloud.io/component_measures/metric/coverage/list?id=emilohlund-git_space-oddity-server)
 [![SonarCloud Bugs](https://sonarcloud.io/api/project_badges/measure?project=emilohlund-git_space-oddity-server&metric=bugs)](https://sonarcloud.io/component_measures/metric/reliability_rating/list?id=emilohlund-git_space-oddity-server)
 [![SonarCloud Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=emilohlund-git_space-oddity-server&metric=vulnerabilities)](https://sonarcloud.io/component_measures/metric/security_rating/list?id=emilohlund-git_space-oddity-server)
 ![Fly.io Deployment](https://img.shields.io/github/actions/workflow/status/emilohlund-git/space-oddity-server/fly.yml?label=fly.io&labelColor=%23800080&color=%23FFF)

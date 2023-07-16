@@ -25,5 +25,9 @@ export class InMemoryDeckRepository implements DeckRepository {
     this.decks = new Map<UUID, Deck>();
   }
 
+  remove(deckId: UUID): void {
+    this.decks.delete(deckId);
+  }
+
   // Implement other methods as needed
 }

@@ -12,6 +12,20 @@ describe('DeckService', () => {
     deckService = new DeckService(deckRepository);
   });
 
+  describe('remove', () => {
+    test('should remove a deck by id', () => {
+      const deck = new Deck();
+
+      deckService.save(deck);
+
+      expect(deckService.findById(deck.id)).toBe(deck);
+
+      deckService.remove(deck.id);
+
+      expect(deckService.findById(deck.id)).toBeUndefined();
+    });
+  });
+
   describe('findById', () => {
     test('should return a deck by id', (done) => {
       const deck = new Deck();

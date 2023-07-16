@@ -42,6 +42,7 @@ class SendMessageCommand implements Command {
     const lobbyMessage = new Message(player, message);
 
     lobby.addMessage(lobbyMessage);
+    lobby.lastActivityTime = Date.now();
 
     this.io.to(lobbyId).emit('MessageSent', lobby);
   }

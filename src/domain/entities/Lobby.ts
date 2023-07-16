@@ -6,6 +6,8 @@ import Player from './Player';
 export class Lobby {
   public id: UUID = randomUUID();
 
+  public lastActivityTime: number = Date.now();
+
   private users: Player[] = [];
 
   private messages: Message[] = [];

@@ -9,6 +9,14 @@ describe('DeckRepository', () => {
     deckRepository = new InMemoryDeckRepository();
   });
 
+  test('should remove a deck', () => {
+    const deck = new Deck();
+    deckRepository.save(deck);
+    expect(deckRepository.findAll().length).toBe(1);
+    deckRepository.remove(deck.id);
+    expect(deckRepository.findAll().length).toBe(0);
+  });
+
   test('should add a deck to the repository and then clear', (done) => {
     expect(deckRepository.findAll().length).toBe(0);
     const deck = new Deck();
