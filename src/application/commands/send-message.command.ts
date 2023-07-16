@@ -1,11 +1,10 @@
 import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { Message } from '../../domain/entities/Message';
-import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type SendMessagePayload = {
   userId: string;
@@ -13,19 +12,18 @@ export type SendMessagePayload = {
   message: string;
 };
 
-class SendMessageCommand implements Command {
+class SendMessageCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: SendMessagePayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   execute(): void {
     const { userId, lobbyId, message } = this.payload;
-
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
 
     const player = this.gameService.getUserService().findById(userId);
 

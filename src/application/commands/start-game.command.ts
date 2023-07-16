@@ -2,7 +2,7 @@ import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import GameState from '../../domain/entities/GameState';
 import Table from '../../domain/entities/Table';
-import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import GameService from '../services/game.service';
 import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
@@ -11,13 +11,15 @@ export type StartGamePayload = {
   lobbyId: UUID,
 };
 
-class StartGameCommand implements Command {
+class StartGameCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: StartGamePayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   execute(): void {
     const { lobbyId } = this.payload;

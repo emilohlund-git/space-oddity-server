@@ -92,8 +92,10 @@ describe('SocketHandler', () => {
   describe('handleConnection', () => {
     test('should register event listeners for each command', (done) => {
       // Define a mock command and payload
-      class MockCommand implements Command {
-        constructor(private socket: ServerSocket, private payload: any) { }
+      class MockCommand extends Command {
+        constructor(private socket: ServerSocket, private payload: any) {
+          super(payload);
+        }
 
         execute(): void {
           // Mock implementation

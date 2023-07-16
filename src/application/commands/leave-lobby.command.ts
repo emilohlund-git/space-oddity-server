@@ -4,25 +4,23 @@ import { Command } from '../../domain/interfaces/command.interface';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type LeaveLobbyPayload = {
   lobbyId: UUID;
 };
 
-class LeaveLobbyCommand implements Command {
+class LeaveLobbyCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket,
     private readonly payload: LeaveLobbyPayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   execute(): void {
     const { lobbyId } = this.payload;
-
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
 
     const user = this.gameService.getUserService().findById(this.socket.id);
 

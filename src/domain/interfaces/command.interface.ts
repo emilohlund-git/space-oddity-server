@@ -11,6 +11,7 @@ import { StartGamePayload } from '../../application/commands/start-game.command'
 import { UserConnectPayload } from '../../application/commands/user-connect.command';
 import { UserDisconnectPayload } from '../../application/commands/user-disconnect.command';
 import { UserReadyPayload } from '../../application/commands/user-ready.command';
+import { createPayloadValidationRules, validatePayload } from '../../application/utils/payload.validator';
 import GameState from '../entities/GameState';
 import { Lobby } from '../entities/Lobby';
 import Player from '../entities/Player';
@@ -50,6 +51,15 @@ export type ServerEvents = {
   CardsMatched: (gameState: GameState) => void;
 };
 
-export interface Command {
-  execute(): void;
+export abstract class Command {
+  constructor(payload: Record<string, any>) {
+    this.payloadValidation(payload);
+  }
+
+  public abstract execute(): void;
+
+  private payloadValidation(payload: Record<string, any>) {
+    const payloadValidationRules = createPayloadValidationRules(payload);
+    validatePayload(payload, payloadValidationRules);
+  }
 }

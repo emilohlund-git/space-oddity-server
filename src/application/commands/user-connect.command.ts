@@ -1,30 +1,28 @@
 import type { Server, Socket } from 'socket.io';
 import { logger } from '../../configurations/logger.config';
 import Player from '../../domain/entities/Player';
-import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import FailedUserConnectionException from '../exceptions/failed-user-connection.exception';
 import GameService from '../services/game.service';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type UserConnectPayload = {
   username: string;
 };
 
-class UserConnectCommand implements Command {
+class UserConnectCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: UserConnectPayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   execute(): any {
     const { username } = this.payload;
 
-    logger.info(`${username} just connected to the server.`);
-
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
+    logger.info(`👤 ${username} just connected to the server.`);
 
     const userExists = this.gameService.getUserService().findById(this.socket.id);
 

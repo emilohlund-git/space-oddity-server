@@ -4,25 +4,23 @@ import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/com
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type JoinLobbyPayload = {
   lobbyId: UUID;
 };
 
-class JoinLobbyCommand implements Command {
+class JoinLobbyCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: JoinLobbyPayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   execute(): void {
     const { lobbyId } = this.payload;
-
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
 
     const user = this.gameService.getUserService().findById(this.socket.id);
 

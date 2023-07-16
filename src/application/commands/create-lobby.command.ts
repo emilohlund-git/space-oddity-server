@@ -7,13 +7,15 @@ import { getShuffledDeck } from '../utils/deck.utils';
 
 export type CreateLobbyPayload = {};
 
-class CreateLobbyCommand implements Command {
+class CreateLobbyCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload?: CreateLobbyPayload,
-  ) { }
+    private readonly payload: CreateLobbyPayload,
+  ) {
+    super({});
+  }
 
   execute(): void {
     const user = this.gameService.getUserService().findById(this.socket.id);
