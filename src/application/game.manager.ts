@@ -2,6 +2,7 @@ import { UUID } from 'crypto';
 import { logger } from '../configurations/logger.config';
 import { Lobby } from '../domain/entities/Lobby';
 import GameService from './services/game.service';
+import { FIVE_MIN_IN_MS } from './utils/constants';
 
 class GameManager {
   private readonly gameService: GameService;
@@ -29,7 +30,7 @@ class GameManager {
 
     for (const lobby of this.gameService.getLobbyService().findAll()) {
       const timeSinceLastActivity = currentTime - lobby.lastActivityTime;
-      if (timeSinceLastActivity >= 5 * 60 * 1000) { // 5 minutes in milliseconds
+      if (timeSinceLastActivity >= FIVE_MIN_IN_MS) { // 5 minutes in milliseconds
         inactiveLobbies.push(lobby);
       }
     }
