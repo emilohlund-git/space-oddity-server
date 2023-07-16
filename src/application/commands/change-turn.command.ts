@@ -6,26 +6,24 @@ import GameStateNotFoundException from '../exceptions/game-state-not-found.excep
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../exceptions/no-players-in-game.exception';
 import NotYourTurnException from '../exceptions/not-your-turn.exception';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type ChangeTurnPayload = {
   gameStateId: UUID;
   lobbyId: UUID;
 };
 
-class ChangeTurnCommand implements Command {
+class ChangeTurnCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: ChangeTurnPayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   public execute(): void {
     const { gameStateId, lobbyId } = this.payload;
-
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
 
     const gameState = this.gameService.getGameState(gameStateId);
 

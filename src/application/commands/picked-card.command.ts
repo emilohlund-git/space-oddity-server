@@ -1,6 +1,6 @@
 import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
-import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import CardNotFoundException from '../exceptions/card-not-found.exception';
 import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
 import DeckIsEmptyException from '../exceptions/deck-is-empty.exception';
@@ -10,7 +10,6 @@ import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import PlayerNotInLobbyException from '../exceptions/player-not-in-lobby.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type PickedCardPayload = {
   userPreviousId: string;
@@ -20,19 +19,18 @@ export type PickedCardPayload = {
   lobbyId: UUID;
 };
 
-class PickedCardCommand implements Command {
+class PickedCardCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: PickedCardPayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   execute(): void {
     const { lobbyId, gameStateId, userPreviousId, userNewId, cardId } = this.payload;
-
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
 
     const gameState = this.gameService.getGameState(gameStateId);
 

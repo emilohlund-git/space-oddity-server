@@ -2,14 +2,13 @@ import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { Lights } from '../../domain/entities/GameState';
 import TwistedCard, { SpecialEffect } from '../../domain/entities/TwistedCard';
-import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import CardNotFoundException from '../exceptions/card-not-found.exception';
 import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
 import GameStateNotFoundException from '../exceptions/game-state-not-found.exception';
 import TableNotFoundException from '../exceptions/table-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type PlayedCardPayload = {
   userId: string;
@@ -20,22 +19,20 @@ export type PlayedCardPayload = {
   gameStateId: UUID;
 };
 
-class PlayedCardCommand implements Command {
+class PlayedCardCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: PlayedCardPayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   execute(): void {
     const { userId, gameStateId, lobbyId, targetUserId, cardId, tableId } = this.payload;
 
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
-
     const gameState = this.gameService.getGameState(gameStateId);
-
     if (!gameState) {
       throw new GameStateNotFoundException();
     }
@@ -50,6 +47,7 @@ class PlayedCardCommand implements Command {
     if (!card) {
       throw new CardNotFoundException(`👋 Card: ${cardId} does not exist.`);
     }
+
     if (!user.getHand().getCards().includes(card)) {
       throw new CardNotInHandException(`👋 Card: ${cardId} is not in the user's hand.`);
     }

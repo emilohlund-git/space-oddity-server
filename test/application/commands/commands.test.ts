@@ -562,7 +562,7 @@ describe('Commands', () => {
       };
 
       expect(() => {
-        const createLobbyCommand = new CreateLobbyCommand(gameService, io, mockSocket);
+        const createLobbyCommand = new CreateLobbyCommand(gameService, io, mockSocket, {});
 
         createLobbyCommand.execute();
       }).toThrow(UserNotFoundException);

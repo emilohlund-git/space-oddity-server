@@ -1,10 +1,9 @@
 import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { logger } from '../../configurations/logger.config';
-import type { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
+import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import FailedUserConnectionException from '../exceptions/failed-user-connection.exception';
 import GameService from '../services/game.service';
-import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type UserDisconnectPayload = {
   userId: string;
@@ -12,21 +11,20 @@ export type UserDisconnectPayload = {
   gameStateId?: UUID;
 };
 
-class UserDisconnectCommand implements Command {
+class UserDisconnectCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: UserDisconnectPayload,
-  ) { }
+  ) {
+    super(payload);
+  }
 
   execute(): any {
     const { lobbyId, userId, gameStateId } = this.payload;
 
-    logger.info(`${userId} just disconnected from the server.`);
-
-    const payloadValidationRules = createPayloadValidationRules(this.payload);
-    validatePayload(this.payload, payloadValidationRules);
+    logger.info(`👤 ${userId} just disconnected from the server.`);
 
     const user = this.gameService.getUserService().findById(userId);
 
