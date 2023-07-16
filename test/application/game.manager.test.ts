@@ -5,6 +5,7 @@ import GameService from '../../src/application/services/game.service';
 import { LobbyService } from '../../src/application/services/lobby.service';
 import { TableService } from '../../src/application/services/table.service';
 import { UserService } from '../../src/application/services/user.service';
+import { FIVE_MIN_IN_MS, FOUR_MIN_IN_MS } from '../../src/application/utils/constants';
 import Card from '../../src/domain/entities/Card';
 import Deck from '../../src/domain/entities/Deck';
 import GameState from '../../src/domain/entities/GameState';
@@ -92,9 +93,7 @@ describe('GameManager', () => {
 
   describe('checkInactiveLobbies', () => {
     test('should not remove lobbies and associated resources', () => {
-      const FOUR_MIN_AGO_IN_MS = 4 * 60 * 1000;
-
-      lobby.lastActivityTime = Date.now() - FOUR_MIN_AGO_IN_MS;
+      lobby.lastActivityTime = Date.now() - FOUR_MIN_IN_MS;
 
       gameManager.checkInactiveLobbies();
 
@@ -112,9 +111,7 @@ describe('GameManager', () => {
     });
 
     test('should remove inactive lobbies and associated resources', () => {
-      const FIVE_MIN_AGO_IN_MS = 5 * 60 * 1000;
-
-      lobby.lastActivityTime = Date.now() - FIVE_MIN_AGO_IN_MS;
+      lobby.lastActivityTime = Date.now() - FIVE_MIN_IN_MS;
 
       gameManager.checkInactiveLobbies();
 
