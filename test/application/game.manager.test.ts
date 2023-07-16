@@ -22,8 +22,6 @@ import { InMemoryLobbyRepository } from '../../src/infrastructure/repositories/i
 import { InMemoryTableRepository } from '../../src/infrastructure/repositories/in-memory-table.repository';
 import { InMemoryUserRepository } from '../../src/infrastructure/repositories/in-memory-user.repository';
 
-jest.mock('node-cron');
-
 describe('GameManager', () => {
   let gameManager: GameManager;
   let cardRepository: CardRepository;

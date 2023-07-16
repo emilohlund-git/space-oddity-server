@@ -1,8 +1,8 @@
-import cron from 'node-cron';
+import cron from 'cron';
 import GameManager from '../game.manager';
 
 export function startInactiveLobbyCheck(gameManager: GameManager): void {
-  cron.schedule('*/5 * * * *', () => {
+  cron.job('*/5 * * * *', () => {
     gameManager.checkInactiveLobbies();
   });
 }

@@ -1,13 +1,14 @@
+import cron from 'cron';
 import { startInactiveLobbyCheck } from '../../../src/application/utils/scheduler';
 
-jest.mock('node-cron');
+jest.mock('cron');
 
 describe('scheduler', () => {
   it('should schedule checkInactiveLobbies every 5 minutes', () => {
     const mockGameManager = {
       checkInactiveLobbies: jest.fn(),
     } as any;
-    const scheduleMock = require('node-cron').schedule;
+    const scheduleMock = cron.job as jest.Mock;
 
     startInactiveLobbyCheck(mockGameManager);
 
