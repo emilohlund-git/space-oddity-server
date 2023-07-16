@@ -86,7 +86,7 @@ describe('GameManager', () => {
         const updatedLobby = gameManager.getGameService().getLobbyService().findById(lobby.id);
         expect(updatedLobby?.lastActivityTime).toBeGreaterThan(latestActivityTime);
         done();
-      }, 200);
+      }, 10);
     });
   });
 

@@ -1,7 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
 import { UUID, randomUUID } from 'crypto';
 import dotenv from 'dotenv';
-import { createServer } from 'http';
+import { Server as HttpServer, createServer } from 'http';
 import { Server, Socket as ServerSocket } from 'socket.io';
 import Client, { Socket as ClientSocket } from 'socket.io-client';
 import CardDiscardedCommand from '../../../src/application/commands/card-discarded.command';
@@ -79,6 +79,7 @@ describe('Commands', () => {
   let testPlayer: Player;
   let card1: Card;
   let card2: Card;
+  let httpServer: HttpServer;
 
   beforeEach((done) => {
     cardRepository = new InMemoryCardRepository();
@@ -111,7 +112,7 @@ describe('Commands', () => {
 
     gameService.setGameState(gameState);
 
-    const httpServer = createServer();
+    httpServer = createServer();
     io = new Server(httpServer);
     const port = 3005;
 
@@ -122,6 +123,10 @@ describe('Commands', () => {
       });
       clientSocket.on('connect', done);
     });
+  });
+
+  afterAll(() => {
+    httpServer.close();
   });
 
   afterEach(() => {
