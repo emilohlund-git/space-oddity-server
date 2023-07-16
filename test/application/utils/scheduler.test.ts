@@ -1,19 +1,34 @@
+import { startInactiveLobbyCheck } from '../../../src/application/utils/scheduler';
 
-const schedulerMock = jest.fn();
-
-jest.mock('cron', () => ({
-  job: (...args: any[]) => schedulerMock(...args),
-}));
+jest.useFakeTimers();
 
 describe('scheduler', () => {
   afterEach((done) => {
-    // Stop the cron job and clear any timers
     jest.clearAllTimers();
     jest.clearAllMocks();
     done();
   });
 
-  it('should schedule checkInactiveLobbies every 5 minutes', (done) => {
-    done();
+  describe('startInactiveLobbyCheck', () => {
+    let mockGameManager: any;
+
+    beforeEach(() => {
+      mockGameManager = {
+        checkInactiveLobbies: jest.fn(),
+      };
+    });
+
+    afterEach(() => {
+      jest.clearAllTimers();
+      jest.clearAllMocks();
+    });
+
+    it('should call checkInactiveLobbies every 5 minutes', () => {
+      startInactiveLobbyCheck(mockGameManager);
+
+      jest.advanceTimersByTime(5 * 60 * 1000);
+
+      expect(mockGameManager.checkInactiveLobbies).toHaveBeenCalled();
+    });
   });
 });
