@@ -35,7 +35,7 @@ class GameManager {
     }
 
     for (const lobby of inactiveLobbies) {
-      logger.info(`Lobby: ${lobby.id} is being terminated due to inactivity.`);
+      logger.info(`🏨 Lobby: ${lobby.id} is being terminated due to inactivity.`);
       const players = lobby.getPlayers();
       const deck = lobby.getDeck();
       const cards = deck?.getCards();
