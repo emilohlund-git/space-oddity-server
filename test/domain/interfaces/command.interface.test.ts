@@ -23,8 +23,9 @@ describe('Command', () => {
   });
 
   it('should validate the payload during construction', () => {
-    new MockCommand(payload);
+    const command = new MockCommand(payload);
 
+    expect(command).toBeDefined();
     expect(createPayloadValidationRules).toHaveBeenCalledWith(payload);
     expect(validatePayload).toHaveBeenCalledWith(payload, payloadValidationRules);
   });
