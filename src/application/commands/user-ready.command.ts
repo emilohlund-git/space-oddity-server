@@ -1,9 +1,8 @@
 import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
-import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
+import { EntityValidator } from '../utils/entity.validator';
 
 export type UserReadyPayload = {
   userId: string;
@@ -17,23 +16,17 @@ class UserReadyCommand extends Command {
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: UserReadyPayload,
   ) {
-    super(payload);
+    super(payload, new EntityValidator());
   }
 
   execute(): void {
     const { userId, lobbyId } = this.payload;
 
     const lobby = this.gameService.getLobbyService().findById(lobbyId);
-
-    if (!lobby) {
-      throw new LobbyNotFoundException();
-    }
+    this.entityValidator.validateLobbyExists(lobby);
 
     const user = this.gameService.getUserService().findById(userId);
-
-    if (!user) {
-      throw new UserNotFoundException();
-    }
+    this.entityValidator.validatePlayerExists(user);
 
     user.setIsReady();
 

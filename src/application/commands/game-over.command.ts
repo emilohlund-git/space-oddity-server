@@ -2,9 +2,8 @@ import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import GameHasNotEndedException from '../exceptions/game-has-ended.exception';
-import GameStateNotFoundException from '../exceptions/game-state-not-found.exception';
-import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import GameService from '../services/game.service';
+import { EntityValidator } from '../utils/entity.validator';
 
 export type GameOverPayload = {
   lobbyId: UUID,
@@ -18,23 +17,17 @@ class GameOverCommand extends Command {
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: GameOverPayload,
   ) {
-    super(payload);
+    super(payload, new EntityValidator());
   }
 
   execute(): void {
     const { gameStateId, lobbyId } = this.payload;
 
     const gameState = this.gameService.getGameState(gameStateId);
-
-    if (!gameState) {
-      throw new GameStateNotFoundException();
-    }
+    this.entityValidator.validateGameStateExists(gameState);
 
     const lobby = this.gameService.getLobbyService().findById(lobbyId);
-
-    if (!lobby) {
-      throw new LobbyNotFoundException('Unable to end game, lobby does not exist.');
-    }
+    this.entityValidator.validateLobbyExists(lobby);
 
     const isGameOver = gameState.isGameOver();
 

@@ -1,9 +1,9 @@
 import type { Server, Socket } from 'socket.io';
 import { Lobby } from '../../domain/entities/Lobby';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import UserNotFoundException from '../exceptions/user-not-found.exception';
 import GameService from '../services/game.service';
 import { getShuffledDeck } from '../utils/deck.utils';
+import { EntityValidator } from '../utils/entity.validator';
 
 export type CreateLobbyPayload = {};
 
@@ -14,15 +14,12 @@ class CreateLobbyCommand extends Command {
     private readonly socket: Socket<ClientEvents, ServerEvents>,
     private readonly payload: CreateLobbyPayload,
   ) {
-    super({});
+    super({}, new EntityValidator());
   }
 
   execute(): void {
     const user = this.gameService.getUserService().findById(this.socket.id);
-
-    if (!user) {
-      throw new UserNotFoundException(`User not found with ID: ${this.socket.id}`);
-    }
+    this.entityValidator.validatePlayerExists(user);
 
     const lobby = new Lobby(user);
     const deck = getShuffledDeck();

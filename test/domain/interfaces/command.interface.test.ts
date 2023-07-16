@@ -1,3 +1,4 @@
+import { EntityValidator } from '../../../src/application/utils/entity.validator';
 import { createPayloadValidationRules, validatePayload } from '../../../src/application/utils/payload.validator';
 import { Command } from '../../../src/domain/interfaces/command.interface';
 
@@ -5,7 +6,7 @@ jest.mock('../../../src/application/utils/payload.validator');
 
 class MockCommand extends Command {
   constructor(private readonly payload: any) {
-    super(payload);
+    super(payload, new EntityValidator());
   }
 
   execute(): void {

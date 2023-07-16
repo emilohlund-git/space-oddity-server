@@ -206,6 +206,13 @@ describe('Entities', () => {
   });
 
   describe('Hand', () => {
+    test('should find a card by it\'s id', () => {
+      const card = new Card(0);
+      const hand = new Hand();
+      hand.addCard(card);
+      expect(hand.getCard(card.id)).toBe(card);
+    });
+
     test('should get a list of all matches in the player\'s hand', () => {
       const playerHand = new Hand();
 

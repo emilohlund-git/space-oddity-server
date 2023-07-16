@@ -20,7 +20,6 @@ import UserDisconnectCommand from '../../../src/application/commands/user-discon
 import UserReadyCommand from '../../../src/application/commands/user-ready.command';
 import CardNotFoundException from '../../../src/application/exceptions/card-not-found.exception';
 import CardNotInHandException from '../../../src/application/exceptions/card-not-in-hand.exception';
-import DeckIsEmptyException from '../../../src/application/exceptions/deck-is-empty.exception';
 import DeckNotFoundException from '../../../src/application/exceptions/deck-not-found.exception';
 import FailedUserConnectionException from '../../../src/application/exceptions/failed-user-connection.exception';
 import GameHasNotEndedException from '../../../src/application/exceptions/game-has-ended.exception';
@@ -29,7 +28,6 @@ import InvalidPayloadException from '../../../src/application/exceptions/invalid
 import LobbyNotFoundException from '../../../src/application/exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../../../src/application/exceptions/no-players-in-game.exception';
 import NotYourTurnException from '../../../src/application/exceptions/not-your-turn.exception';
-import OwnerNotFoundException from '../../../src/application/exceptions/owner-not-found.exception';
 import PlayerNotInLobbyException from '../../../src/application/exceptions/player-not-in-lobby.exception';
 import TableNotFoundException from '../../../src/application/exceptions/table-not-found.exception';
 import UserNotFoundException from '../../../src/application/exceptions/user-not-found.exception';
@@ -233,7 +231,7 @@ describe('Commands', () => {
 
         const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: gameState.lobby.id,
         });
 
         changeTurnCommand.execute();
@@ -891,7 +889,7 @@ describe('Commands', () => {
       done();
     });
 
-    test('should throw DeckIsEmptyException exception', (done) => {
+    test('should throw CardNotFoundException exception', (done) => {
       expect(() => {
         const player1 = new Player('abcd', 'player1');
         const player2 = new Player('bcde', 'player2');
@@ -936,7 +934,7 @@ describe('Commands', () => {
         pickedCardCommand.execute();
 
         expect(mockDeck.hasCards).toHaveBeenCalled();
-      }).toThrow(DeckIsEmptyException);
+      }).toThrow(CardNotFoundException);
       done();
     });
 
@@ -1267,20 +1265,13 @@ describe('Commands', () => {
     });
 
     test('should throw FailedUserConnectionException when user creation fails', () => {
-      jest.spyOn(gameService.getUserService(), 'findById').mockImplementation((userId) => {
-        if (userId === serverSocket.id) {
-          return undefined;
-        }
-        return {} as Player;
-      });
+      gameService.getUserService().save(new Player(serverSocket.id, 'test'));
 
       const userConnectCommand = new UserConnectCommand(gameService, io, serverSocket, {
         username: 'test1234',
       });
 
       expect(() => userConnectCommand.execute()).toThrow(FailedUserConnectionException);
-
-      jest.spyOn(gameService.getUserService(), 'findById').mockRestore();
     });
 
     test('should emit UserConnected event when valid payload is provided', (done) => {
@@ -1374,6 +1365,7 @@ describe('Commands', () => {
       expect(gameState.table.getDisposedCards()).toHaveLength(0);
 
       const player = new Player(serverSocket.id, 'test');
+      player.addToHand(card1);
       testLobby.addUser(player);
 
       const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
@@ -1390,7 +1382,7 @@ describe('Commands', () => {
       done();
     });
 
-    test('should throw OwnerNotFoundException exception', (done) => {
+    test('should throw UserNotFoundException exception', (done) => {
       expect(() => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
           cardId: card1.id,
@@ -1400,7 +1392,7 @@ describe('Commands', () => {
         });
 
         cardDiscardedCommand.execute();
-      }).toThrow(OwnerNotFoundException);
+      }).toThrow(UserNotFoundException);
       done();
     });
 
@@ -1426,10 +1418,12 @@ describe('Commands', () => {
 
     test('should throw CardNotInHandException exception', (done) => {
       gameState.lobby!.addUser(new Player('2345', 'testing-2'));
+      const card = new Card(0);
+      gameService.getCardService().save(card);
 
       expect(() => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
-          cardId: randomUUID(),
+          cardId: card.id,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
           userId: '2345',
@@ -1509,7 +1503,7 @@ describe('Commands', () => {
       done();
     });
 
-    test('should throw FailedUserConnectionException exception', (done) => {
+    test('should throw UserNotFoundException exception', (done) => {
       expect(() => {
         const userDisconnectCommand = new UserDisconnectCommand(gameService, io, serverSocket, {
           userId: randomUUID(),
@@ -1518,7 +1512,7 @@ describe('Commands', () => {
         });
 
         userDisconnectCommand.execute();
-      }).toThrow(FailedUserConnectionException);
+      }).toThrow(UserNotFoundException);
       done();
     });
 

@@ -11,6 +11,7 @@ import { StartGamePayload } from '../../application/commands/start-game.command'
 import { UserConnectPayload } from '../../application/commands/user-connect.command';
 import { UserDisconnectPayload } from '../../application/commands/user-disconnect.command';
 import { UserReadyPayload } from '../../application/commands/user-ready.command';
+import { EntityValidator } from '../../application/utils/entity.validator';
 import { createPayloadValidationRules, validatePayload } from '../../application/utils/payload.validator';
 import GameState from '../entities/GameState';
 import { Lobby } from '../entities/Lobby';
@@ -52,8 +53,12 @@ export type ServerEvents = {
 };
 
 export abstract class Command {
-  constructor(payload: Record<string, any>) {
+  constructor(
+    payload: Record<string, any>,
+    protected readonly entityValidator: EntityValidator,
+  ) {
     this.payloadValidation(payload);
+    this.entityValidator = new EntityValidator();
   }
 
   public abstract execute(): void;

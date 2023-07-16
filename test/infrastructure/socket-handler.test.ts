@@ -9,6 +9,7 @@ import GameService from '../../src/application/services/game.service';
 import { LobbyService } from '../../src/application/services/lobby.service';
 import { TableService } from '../../src/application/services/table.service';
 import { UserService } from '../../src/application/services/user.service';
+import { EntityValidator } from '../../src/application/utils/entity.validator';
 import GameState from '../../src/domain/entities/GameState';
 import { Lobby } from '../../src/domain/entities/Lobby';
 import Player from '../../src/domain/entities/Player';
@@ -94,7 +95,7 @@ describe('SocketHandler', () => {
       // Define a mock command and payload
       class MockCommand extends Command {
         constructor(private socket: ServerSocket, private payload: any) {
-          super(payload);
+          super(payload, new EntityValidator());
         }
 
         execute(): void {
