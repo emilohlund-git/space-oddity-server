@@ -1,8 +1,12 @@
 import request from 'supertest';
 
-import app from '../src/application/app';
+import { server as app, gameScheduler } from '../src/application/app';
 
 describe('app', () => {
+  afterAll(() => {
+    gameScheduler.unref();
+  });
+
   it('responds with a not found message', (done) => {
     request(app)
       .get('/what-is-this-even')
@@ -13,6 +17,10 @@ describe('app', () => {
 });
 
 describe('GET /', () => {
+  afterAll(() => {
+    gameScheduler.unref();
+  });
+
   it('responds with a json message', (done) => {
     request(app)
       .get('/')

@@ -81,7 +81,7 @@ describe('Commands', () => {
   let card2: Card;
   let httpServer: HttpServer;
 
-  beforeEach((done) => {
+  beforeEach(() => {
     cardRepository = new InMemoryCardRepository();
     userRepository = new InMemoryUserRepository();
     lobbyRepository = new InMemoryLobbyRepository();
@@ -111,7 +111,9 @@ describe('Commands', () => {
     );
 
     gameService.setGameState(gameState);
+  });
 
+  beforeAll((done) => {
     httpServer = createServer();
     io = new Server(httpServer);
     const port = 3005;
@@ -127,9 +129,7 @@ describe('Commands', () => {
 
   afterAll(() => {
     httpServer.close();
-  });
-
-  afterEach(() => {
+    httpServer.unref();
     io.close();
     serverSocket.disconnect();
     clientSocket.close();

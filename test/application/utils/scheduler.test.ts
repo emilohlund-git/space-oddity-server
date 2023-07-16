@@ -24,11 +24,13 @@ describe('scheduler', () => {
     });
 
     it('should call checkInactiveLobbies every 5 minutes', () => {
-      startInactiveLobbyCheck(mockGameManager);
+      const interval = startInactiveLobbyCheck(mockGameManager);
 
       jest.advanceTimersByTime(5 * 60 * 1000);
 
       expect(mockGameManager.checkInactiveLobbies).toHaveBeenCalled();
+
+      interval.unref();
     });
   });
 });

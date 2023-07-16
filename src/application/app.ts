@@ -90,6 +90,16 @@ socketHandler.handleConnection();
 
 const gameManager = new GameManager(gameService);
 
-startInactiveLobbyCheck(gameManager);
+const gameScheduler = startInactiveLobbyCheck(gameManager);
 
-export default server;
+process.on('exit', () => {
+  gameScheduler.unref();
+});
+
+process.on('SIGINT', () => {
+  gameScheduler.unref();
+  process.exit();
+});
+
+export { gameScheduler, server };
+
