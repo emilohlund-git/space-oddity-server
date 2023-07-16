@@ -1,6 +1,6 @@
 class CardNotFoundException extends Error {
   constructor(message?: string) {
-    super(message || 'Card not found.');
+    super(message ?? 'Card not found.');
     this.name = 'CardNotFoundException';
   }
 }

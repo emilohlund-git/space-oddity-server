@@ -94,9 +94,9 @@ describe('GameScenarios', () => {
         players[0].getUserName(),
       );
 
-      for (let i = 1; i < players!.length; i++) {
+      for (let i = 1; i < players.length; i++) {
         gameState.nextTurn();
-        expect(gameState.getCurrentPlayer().getUserName()).toBe(players![i].getUserName());
+        expect(gameState.getCurrentPlayer().getUserName()).toBe(players[i].getUserName());
       }
     });
 

@@ -1,6 +1,6 @@
 class LobbyExistsException extends Error {
   constructor(message?: string) {
-    super(message || 'Lobby already exists.');
+    super(message ?? 'Lobby already exists.');
     this.name = 'LobbyExistsException';
   }
 }
