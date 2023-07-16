@@ -84,6 +84,10 @@ class PlayedCardCommand implements Command {
       }
     }
 
+    if (gameState.lobby) {
+      gameState.lobby.lastActivityTime = Date.now();
+    }
+
     this.io.to(lobbyId).emit('PlayedCard', gameState);
   }
 }

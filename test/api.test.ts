@@ -1,8 +1,12 @@
 import request from 'supertest';
 
-import app from '../src/application/app';
+import { server as app, gameScheduler } from '../src/application/app';
 
 describe('GET /api/v1', () => {
+  afterAll(() => {
+    gameScheduler.unref();
+  });
+
   it('responds with a json message', (done) => {
     request(app)
       .get('/api/v1')
@@ -15,6 +19,10 @@ describe('GET /api/v1', () => {
 });
 
 describe('GET /api/v1/emojis', () => {
+  afterAll(() => {
+    gameScheduler.unref();
+  });
+
   it('responds with a json message', (done) => {
     request(app)
       .get('/api/v1/emojis')

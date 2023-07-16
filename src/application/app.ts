@@ -15,12 +15,14 @@ import { InMemoryLobbyRepository } from '../infrastructure/repositories/in-memor
 import { InMemoryTableRepository } from '../infrastructure/repositories/in-memory-table.repository';
 import { InMemoryUserRepository } from '../infrastructure/repositories/in-memory-user.repository';
 import SocketHandler from '../infrastructure/socket.handler';
+import GameManager from './game.manager';
 import { CardService } from './services/card.service';
 import { DeckService } from './services/deck.service';
 import GameService from './services/game.service';
 import { LobbyService } from './services/lobby.service';
 import { TableService } from './services/table.service';
 import { UserService } from './services/user.service';
+import { startInactiveLobbyCheck } from './utils/scheduler';
 
 dotenv.config();
 
@@ -86,4 +88,18 @@ const socketHandler = new SocketHandler(io, gameService);
 
 socketHandler.handleConnection();
 
-export default server;
+const gameManager = new GameManager(gameService);
+
+const gameScheduler = startInactiveLobbyCheck(gameManager);
+
+process.on('exit', () => {
+  gameScheduler.unref();
+});
+
+process.on('SIGINT', () => {
+  gameScheduler.unref();
+  process.exit();
+});
+
+export { gameScheduler, server };
+

@@ -36,6 +36,7 @@ class LeaveLobbyCommand implements Command {
       throw new LobbyNotFoundException(`👋 Lobby: ${lobbyId} does not exist.`);
     }
 
+    lobby.lastActivityTime = Date.now();
     lobby.removeUser(user.id);
     this.gameService.getLobbyService().save(lobby);
     if (lobby.getPlayers().length === 0) {

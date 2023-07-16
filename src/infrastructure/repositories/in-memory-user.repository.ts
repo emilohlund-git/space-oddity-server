@@ -27,6 +27,12 @@ export class InMemoryUserRepository implements UserRepository {
     this.users.delete(userId);
   }
 
+  removeMany(players: Player[]): void {
+    for (const player of players) {
+      this.users.delete(player.id);
+    }
+  }
+
   findAll(): Player[] {
     return Array.from(this.users.values());
   }

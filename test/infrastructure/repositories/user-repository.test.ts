@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import Player from '../../../src/domain/entities/Player';
 import { User } from '../../../src/domain/entities/User';
 import { UserRepository } from '../../../src/domain/repositories/user-repository.interface';
 import { InMemoryUserRepository } from '../../../src/infrastructure/repositories/in-memory-user.repository';
@@ -8,6 +9,20 @@ describe('UserRepository', () => {
 
   beforeAll(() => {
     userRepository = new InMemoryUserRepository();
+  });
+
+  test('should remove several players at once', () => {
+    const player = new Player('1', 'test1');
+    const player2 = new Player('2', 'test2');
+
+    userRepository.save(player);
+    userRepository.save(player2);
+
+    expect(userRepository.findAll()).toHaveLength(2);
+
+    userRepository.removeMany([player, player2]);
+
+    expect(userRepository.findAll()).toHaveLength(0);
   });
 
   test('should add a user to the repository and then clear', (done) => {

@@ -36,6 +36,7 @@ class JoinLobbyCommand implements Command {
       throw new LobbyNotFoundException(`👋 Lobby: ${this.payload.lobbyId} does not exist.`);
     }
 
+    lobby.lastActivityTime = Date.now();
     lobby.addUser(user);
     this.socket.join(lobbyId);
     this.gameService.getLobbyService().save(lobby);

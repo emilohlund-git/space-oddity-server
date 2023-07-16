@@ -40,6 +40,10 @@ class StartGameCommand implements Command {
     gameState.setLobby(lobbyExists);
     gameState.startGame();
 
+    if (gameState.lobby) {
+      gameState.lobby.lastActivityTime = Date.now();
+    }
+
     this.io.to(lobbyId).emit('GameStarted', gameState);
   }
 }

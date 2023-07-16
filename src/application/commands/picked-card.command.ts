@@ -85,6 +85,10 @@ class PickedCardCommand implements Command {
       gameState.transferCard(previousOwner, newOwner, card);
     }
 
+    if (gameState.lobby) {
+      gameState.lobby.lastActivityTime = Date.now();
+    }
+
     this.io.to(lobbyId).emit('PickedCard', gameState);
   }
 }

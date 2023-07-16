@@ -1,3 +1,4 @@
+import { UUID } from 'crypto';
 import Deck from '../../domain/entities/Deck';
 import { DeckRepository } from '../../domain/repositories/deck-repository.interface';
 
@@ -18,5 +19,9 @@ export class DeckService {
 
   findAll(): Deck[] {
     return this.deckRepository.findAll();
+  }
+
+  remove(deckId: UUID): void {
+    this.deckRepository.remove(deckId);
   }
 }
