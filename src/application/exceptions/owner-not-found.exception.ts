@@ -1,6 +1,6 @@
 class OwnerNotFoundException extends Error {
   constructor(message?: string) {
-    super(message || 'Owner not found.');
+    super(message ?? 'Owner not found.');
     this.name = 'OwnerNotFoundException';
   }
 }

@@ -1,6 +1,6 @@
 class InvalidPayloadException extends Error {
   constructor(message?: string) {
-    super(message || 'Invalid payload');
+    super(message ?? 'Invalid payload');
     this.name = 'InvalidPayloadException';
   }
 }
