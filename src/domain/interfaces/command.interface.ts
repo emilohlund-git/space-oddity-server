@@ -56,7 +56,7 @@ export abstract class Command {
     this.payloadValidation(payload);
   }
 
-  public execute() { }
+  public abstract execute(): void;
 
   private payloadValidation(payload: Record<string, any>) {
     const payloadValidationRules = createPayloadValidationRules(payload);
