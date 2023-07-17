@@ -1,6 +1,7 @@
 import { UUID } from 'crypto';
 import { logger } from '../configurations/logger.config';
 import { Lobby } from '../domain/entities/Lobby';
+import { FileService } from './services/file.service';
 import GameService from './services/game.service';
 import { FIVE_MIN_IN_MS } from './utils/constants';
 
@@ -51,12 +52,12 @@ class GameManager {
       const gameState = this.gameService.getGameStates().find((g) => g.lobby?.id === lobby.id);
 
       if (gameState) {
+        FileService.removeSavedState(gameState);
         this.gameService.removeGameState(gameState.id);
       }
 
       this.gameService.getUserService().removeMany(players);
       this.gameService.getLobbyService().remove(lobby.id);
-
     }
   }
 }

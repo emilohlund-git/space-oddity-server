@@ -1,3 +1,4 @@
+import { default as f } from 'fs';
 import fs from 'fs/promises';
 import { FileService } from '../../../src/application/services/file.service';
 import GameState from '../../../src/domain/entities/GameState';
@@ -6,6 +7,40 @@ import Table from '../../../src/domain/entities/Table';
 jest.mock('fs/promises');
 
 describe('FileService', () => {
+  describe('removeSavedState', () => {
+    it('should throw an error', async () => {
+      const gameState = new GameState(new Table());
+
+      jest.spyOn(f, 'existsSync').mockReturnValue(true);
+      jest.spyOn(fs, 'rm').mockRejectedValue(new Error('File removal error'));
+
+      await expect(FileService.removeSavedState(gameState)).rejects.toThrow(Error);
+
+      expect(fs.rm).toHaveBeenCalledWith(`./states/${gameState.id}.json`);
+    });
+
+    it('should remove file if the file exists', async () => {
+      const gameState = new GameState(new Table());
+
+      jest.spyOn(f, 'existsSync').mockReturnValue(true);
+      jest.spyOn(fs, 'rm').mockResolvedValue(undefined);
+
+      await FileService.removeSavedState(gameState);
+
+      expect(fs.rm).toHaveBeenCalledWith(`./states/${gameState.id}.json`);
+    });
+
+    it('should do nothing if file doesn\'t exist', async () => {
+      const gameState = new GameState(new Table());
+
+      const fileExists = jest.spyOn(f, 'existsSync');
+
+      await FileService.removeSavedState(gameState);
+
+      expect(fileExists).toHaveBeenCalledWith(`./states/${gameState.id}.json`);
+    });
+  });
+
   describe('storeGameState', () => {
     it('should fail to store the game state file to disk', async () => {
       const gameState = new GameState(new Table());

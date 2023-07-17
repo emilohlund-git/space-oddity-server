@@ -1,4 +1,5 @@
 import { UUID } from 'crypto';
+import { default as f } from 'fs';
 import fs from 'fs/promises';
 import { CardType } from '../../domain/entities/Card';
 import GameState, { GameStatus, Lights } from '../../domain/entities/GameState';
@@ -56,6 +57,18 @@ export interface GameStateJson {
 }
 
 export class FileService {
+  static async removeSavedState(gameState: GameState): Promise<void> {
+    const folderPath = './states';
+    if (f.existsSync(`${folderPath}/${gameState.id}.json`)) {
+      try {
+        await fs.rm(`${folderPath}/${gameState.id}.json`);
+        return await Promise.resolve();
+      } catch (error) {
+        return Promise.reject(error);
+      }
+    }
+  }
+
   static async storeGameState(gameState: GameState): Promise<void> {
     const folderPath = './states';
     try {
