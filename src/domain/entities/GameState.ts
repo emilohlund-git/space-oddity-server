@@ -9,7 +9,7 @@ import { Lobby } from './Lobby';
 import Player from './Player';
 import Table from './Table';
 
-enum GameStatus {
+export enum GameStatus {
   NotStarted = 'not_started',
   InProgress = 'in_progress',
   Ended = 'ended',

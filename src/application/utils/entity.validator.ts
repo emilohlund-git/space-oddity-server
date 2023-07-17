@@ -8,6 +8,7 @@ import { Validator } from '../../domain/interfaces/validator.interface';
 import CardNotFoundException from '../exceptions/card-not-found.exception';
 import CardNotInHandException from '../exceptions/card-not-in-hand.exception';
 import DeckNotFoundException from '../exceptions/deck-not-found.exception';
+import FailedToRetrieveGameStateException from '../exceptions/failed-to-retrieve-game-state.exception';
 import FailedUserConnectionException from '../exceptions/failed-user-connection.exception';
 import GameStateNotFoundException from '../exceptions/game-state-not-found.exception';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
@@ -16,8 +17,15 @@ import NotYourTurnException from '../exceptions/not-your-turn.exception';
 import PlayerNotInLobbyException from '../exceptions/player-not-in-lobby.exception';
 import TableNotFoundException from '../exceptions/table-not-found.exception';
 import UserNotFoundException from '../exceptions/user-not-found.exception';
+import { GameStateJson } from '../services/file.service';
 
 export class EntityValidator implements Validator {
+  validateRetrievedGameState(gameStateJson: GameStateJson) {
+    if (!gameStateJson.id || Object.keys(gameStateJson).length === 0) {
+      throw new FailedToRetrieveGameStateException();
+    }
+  }
+
   validateCardInHand(player: Player, card: Card): void {
     if (!player.getHand().getCards().includes(card)) {
       throw new CardNotInHandException(`👋 Card: ${card.id} is not in the user's hand.`);

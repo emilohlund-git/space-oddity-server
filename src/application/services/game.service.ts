@@ -1,9 +1,17 @@
 import { UUID } from 'crypto';
+import Card from '../../domain/entities/Card';
+import Deck from '../../domain/entities/Deck';
 import GameState from '../../domain/entities/GameState';
+import { Lobby } from '../../domain/entities/Lobby';
+import Player from '../../domain/entities/Player';
+import Table from '../../domain/entities/Table';
+import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import { CardService } from '../services/card.service';
 import { TableService } from '../services/table.service';
 import { UserService } from '../services/user.service';
+import { mapJsonToClass } from '../utils/json-mapper';
 import { DeckService } from './deck.service';
+import { CardJson, DeckJson, GameStateJson, LobbyJson, PlayerJson, TableJson } from './file.service';
 import { LobbyService } from './lobby.service';
 
 class GameService {
@@ -69,6 +77,78 @@ class GameService {
 
   public removeGameState(gameStateId: UUID): void {
     this.gameStates.delete(gameStateId);
+  }
+
+  public createFromLoadedJson(json: GameStateJson): GameState {
+    // Parse the loaded JSON and create entities
+    const gameState = GameService.parseGameState(json);
+
+    if (!json.lobby) throw new LobbyNotFoundException();
+
+    const userEntities = GameService.parseUserEntities(json.lobby.users);
+    const cardEntities = GameService.parseCardEntities(json.lobby.deck!.cards);
+    const tableEntity = GameService.parseTableEntity(json.table);
+    const deckEntity = GameService.parseDeckEntity(json.lobby.deck!);
+    const lobbyEntity = GameService.parseLobbyEntity(json.lobby);
+
+    // Set the created entities in their respective services
+    this.userService.saveMany(userEntities);
+    this.cardService.saveMany(cardEntities);
+    this.tableService.save(tableEntity);
+    this.deckService.save(deckEntity);
+    this.lobbyService.save(lobbyEntity);
+
+    // Set the parsed gameState in gameStates map
+    gameState.setLobby(lobbyEntity);
+    this.setGameState(gameState);
+
+    return gameState;
+  }
+
+  private static parseGameState(json: GameStateJson): GameState {
+    const gameState = mapJsonToClass(json, GameState);
+
+    return gameState;
+  }
+
+  private static parseUserEntities(json: PlayerJson[]): Player[] {
+    const players = <Player[]>[];
+
+    for (const j of json) {
+      const player = mapJsonToClass(j, Player);
+      players.push(player);
+    }
+
+    return players;
+  }
+
+  private static parseCardEntities(json: CardJson[]): Card[] {
+    const cards = <Card[]>[];
+
+    for (const c of json) {
+      const card = mapJsonToClass(c, Card);
+      cards.push(card);
+    }
+
+    return cards;
+  }
+
+  private static parseTableEntity(json: TableJson): Table {
+    const table = mapJsonToClass(json, Table);
+
+    return table;
+  }
+
+  private static parseDeckEntity(json: DeckJson): Deck {
+    const deck = mapJsonToClass(json, Deck);
+
+    return deck;
+  }
+
+  private static parseLobbyEntity(json: LobbyJson): Lobby {
+    const lobby = mapJsonToClass(json, Lobby);
+
+    return lobby;
   }
 }
 
