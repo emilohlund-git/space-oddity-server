@@ -331,11 +331,11 @@ describe('Commands', () => {
         lobbyId: gameState.lobby!.id,
       });
 
-      expect(gameState.light).toBe(Lights.RED);
+      expect(gameState.light).toBe(Lights.BLUE);
 
       playedCardCommand.execute();
 
-      expect(gameState.light).toBe(Lights.BLUE);
+      expect(gameState.light).toBe(Lights.RED);
 
       card2 = new TwistedCard(0, SpecialEffect.SwitchLight);
 
@@ -354,7 +354,7 @@ describe('Commands', () => {
 
       playedCardCommand2.execute();
 
-      expect(gameState.light).toBe(Lights.RED);
+      expect(gameState.light).toBe(Lights.BLUE);
 
       done();
     });
@@ -811,6 +811,7 @@ describe('Commands', () => {
         lobbyId: gameState.lobby!.id,
         userNewId: player1.id,
         userPreviousId: player2.id,
+        fromOpponent: false,
       });
 
       pickedCardCommand.execute();
@@ -847,6 +848,7 @@ describe('Commands', () => {
           lobbyId: gameState.lobby!.id,
           userNewId: player1.id,
           userPreviousId: player2.id,
+          fromOpponent: false,
         });
 
         pickedCardCommand.execute();
@@ -882,6 +884,7 @@ describe('Commands', () => {
           lobbyId: randomUUID(),
           userNewId: player1.id,
           userPreviousId: player2.id,
+          fromOpponent: false,
         });
 
         pickedCardCommand.execute();
@@ -927,6 +930,7 @@ describe('Commands', () => {
           lobbyId: gameState.lobby!.id,
           userNewId: player1.id,
           userPreviousId: player2.id,
+          fromOpponent: false,
         });
 
         mockDeck.hasCards.mockReturnValueOnce(true);
@@ -964,6 +968,7 @@ describe('Commands', () => {
           lobbyId: gameState.lobby!.id,
           userNewId: player1.id,
           userPreviousId: player2.id,
+          fromOpponent: false,
         });
 
         pickedCardCommand.execute();
@@ -1009,6 +1014,7 @@ describe('Commands', () => {
         lobbyId: gameState.lobby!.id,
         userNewId: player2.id,
         userPreviousId: player1.id,
+        fromOpponent: false,
       });
       pickedCardCommand.execute();
 
@@ -1042,6 +1048,7 @@ describe('Commands', () => {
           lobbyId: randomUUID(),
           userNewId: randomUUID(),
           userPreviousId: randomUUID(),
+          fromOpponent: false,
         });
 
         pickedCardCommand.execute();
@@ -1070,6 +1077,7 @@ describe('Commands', () => {
           userNewId: 'abcd1234',
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
+          fromOpponent: false,
         });
 
         pickedCardCommand.execute();
@@ -1082,6 +1090,7 @@ describe('Commands', () => {
           userNewId: newId,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
+          fromOpponent: false,
         });
 
         pickedCardCommand.execute();
@@ -1115,6 +1124,7 @@ describe('Commands', () => {
           userNewId: newOwnerId,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
+          fromOpponent: false,
         });
 
         pickedCardCommand.execute();
@@ -1144,6 +1154,7 @@ describe('Commands', () => {
           userNewId: newOwnerId,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
+          fromOpponent: false,
         });
 
         pickedCardCommand.execute();

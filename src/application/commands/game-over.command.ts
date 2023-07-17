@@ -35,12 +35,12 @@ class GameOverCommand extends Command {
     if (!isGameOver) {
       throw new GameHasNotEndedException();
     } else {
-      this.gameService.getCardService().removeMany(lobby.getDeck()!.getCards());
-      this.gameService.getLobbyService().remove(lobby.id);
       gameState.endGame();
     }
 
-    this.io.to(lobbyId).emit('GameEnded');
+    this.io.to(lobbyId).emit('GameEnded', {
+      winner: gameState.getPlayerWithLeastAmountOfCards(),
+    });
   }
 }
 

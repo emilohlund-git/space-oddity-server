@@ -106,6 +106,107 @@ describe('End to End tests', () => {
     });
   };
 
+  test('should simulate finishing a deck of cards', async () => {
+    socketHandler.handleConnection();
+
+    /* Players connects to the game */
+    clientSocket.emit('UserConnect', {
+      username: 'test1',
+    });
+
+    clientSocket2.emit('UserConnect', {
+      username: 'test2',
+    });
+
+    await wait();
+
+    /* Player 1 creates a lobby and Player 2 joins it */
+    clientSocket.emit('CreateLobby');
+
+    await wait();
+
+    const players = gameService.getUserService().findAll();
+    const lobby = gameService.getLobbyService().findAll()[0];
+
+    const testDeck = new Deck();
+    for (let i = 1; i <= 21; i++) {
+      const card = new Card(i);
+      const cardCopy = new Card(i);
+      cardRepository.saveMany([card, cardCopy]);
+      testDeck.addCard(card);
+      testDeck.addCard(cardCopy);
+    }
+
+    lobby.setDeck(testDeck);
+
+    clientSocket2.emit('JoinLobby', {
+      lobbyId: lobby.id,
+    });
+
+    await wait();
+
+    expect(lobby.getPlayers().includes(players[0])).toBe(true);
+    expect(lobby.getPlayers().includes(players[1])).toBe(true);
+
+    /* Player1 starts the game */
+    clientSocket.emit('StartGame', {
+      lobbyId: lobby.id,
+    });
+
+    await wait();
+
+    const gameState = gameService.getGameStates()[0];
+    expect(gameState).toBeDefined();
+    expect(gameState.getLobby()).toBe(lobby);
+    expect(gameState.gameStatus).toBe('in_progress');
+
+    while (players[0].getHand().getCards().length > 0 &&
+      players[1].getHand().getCards().length > 0 &&
+      lobby.getDeck()?.hasCards()) {
+      clientSocket.connect();
+      clientSocket2.connect();
+      const currentPlayer = gameState.getCurrentPlayer();
+      const otherPlayer = lobby.getPlayers().find((p) => p.id !== currentPlayer.id)!;
+      const otherPlayerHand = otherPlayer.getHand();
+      const otherPlayerHandCards = otherPlayerHand.getCards();
+      const currentSocket = gameState.getCurrentPlayer() === players[0] ? clientSocket : clientSocket2;
+      const randomCardFromOtherPlayer = otherPlayerHandCards[Math.floor(Math.random() * otherPlayerHandCards.length)];
+      const matches = currentPlayer.getHand().getMatches();
+
+      if (matches.length > 0) {
+        currentSocket.emit('MatchCards', {
+          card1Id: matches[0].id,
+          card2Id: matches[1].id,
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+          userId: currentPlayer.id,
+        });
+
+        await wait();
+      } else {
+        currentSocket.emit('PickedCard', {
+          cardId: randomCardFromOtherPlayer.id,
+          gameStateId: gameState.id,
+          lobbyId: gameState.lobby!.id,
+          userNewId: currentPlayer.id,
+          userPreviousId: otherPlayer.id,
+          fromOpponent: !lobby.getDeck()!.hasCards(),
+        });
+
+        await wait();
+      }
+
+      currentSocket.emit('ChangeTurn', {
+        gameStateId: gameState.id,
+        lobbyId: gameState.lobby!.id,
+      });
+
+      await wait();
+    }
+
+    expect(lobby.getDeck()?.getCards()).toHaveLength(0);
+  }, 100000);
+
   test('should simulate an entire game', async () => {
     socketHandler.handleConnection();
 
