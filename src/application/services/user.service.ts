@@ -12,6 +12,12 @@ export class UserService {
     this.userRepository.save(user);
   }
 
+  public saveMany(players: Player[]) {
+    for (const player of players) {
+      this.userRepository.save(player);
+    }
+  }
+
   public remove(userId: string) {
     this.userRepository.remove(userId);
   }

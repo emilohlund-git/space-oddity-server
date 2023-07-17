@@ -47,8 +47,16 @@ class GameManager {
       if (deck) {
         this.gameService.getDeckService().remove(deck.id);
       }
+
+      const gameState = this.gameService.getGameStates().find((g) => g.lobby?.id === lobby.id);
+
+      if (gameState) {
+        this.gameService.removeGameState(gameState.id);
+      }
+
       this.gameService.getUserService().removeMany(players);
       this.gameService.getLobbyService().remove(lobby.id);
+
     }
   }
 }

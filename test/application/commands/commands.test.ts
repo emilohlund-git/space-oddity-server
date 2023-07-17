@@ -13,6 +13,8 @@ import LeaveLobbyCommand from '../../../src/application/commands/leave-lobby.com
 import MatchCardsCommand from '../../../src/application/commands/match-cards.command';
 import PickedCardCommand from '../../../src/application/commands/picked-card.command';
 import PlayedCardCommand from '../../../src/application/commands/played-card.command';
+import RetrieveGameStateCommand from '../../../src/application/commands/retrieve-game-state.command';
+import SaveGameStateCommand from '../../../src/application/commands/save-game-state.command';
 import SendMessageCommand from '../../../src/application/commands/send-message.command';
 import StartGameCommand from '../../../src/application/commands/start-game.command';
 import UserConnectCommand from '../../../src/application/commands/user-connect.command';
@@ -21,6 +23,7 @@ import UserReadyCommand from '../../../src/application/commands/user-ready.comma
 import CardNotFoundException from '../../../src/application/exceptions/card-not-found.exception';
 import CardNotInHandException from '../../../src/application/exceptions/card-not-in-hand.exception';
 import DeckNotFoundException from '../../../src/application/exceptions/deck-not-found.exception';
+import FailedToRetrieveGameStateException from '../../../src/application/exceptions/failed-to-retrieve-game-state.exception';
 import FailedUserConnectionException from '../../../src/application/exceptions/failed-user-connection.exception';
 import GameHasNotEndedException from '../../../src/application/exceptions/game-has-ended.exception';
 import GameStateNotFoundException from '../../../src/application/exceptions/game-state-not-found.exception';
@@ -33,13 +36,14 @@ import TableNotFoundException from '../../../src/application/exceptions/table-no
 import UserNotFoundException from '../../../src/application/exceptions/user-not-found.exception';
 import { CardService } from '../../../src/application/services/card.service';
 import { DeckService } from '../../../src/application/services/deck.service';
+import { FileService, GameStateJson } from '../../../src/application/services/file.service';
 import GameService from '../../../src/application/services/game.service';
 import { LobbyService } from '../../../src/application/services/lobby.service';
 import { TableService } from '../../../src/application/services/table.service';
 import { UserService } from '../../../src/application/services/user.service';
 import Card from '../../../src/domain/entities/Card';
 import Deck from '../../../src/domain/entities/Deck';
-import GameState, { Lights } from '../../../src/domain/entities/GameState';
+import GameState, { GameStatus, Lights } from '../../../src/domain/entities/GameState';
 import { Lobby } from '../../../src/domain/entities/Lobby';
 import Player from '../../../src/domain/entities/Player';
 import Table from '../../../src/domain/entities/Table';
@@ -56,6 +60,8 @@ import { InMemoryTableRepository } from '../../../src/infrastructure/repositorie
 import { InMemoryUserRepository } from '../../../src/infrastructure/repositories/in-memory-user.repository';
 import { getShuffledDeck } from '../../utils/test.utils';
 dotenv.config();
+
+jest.mock('fs/promises');
 
 describe('Commands', () => {
   let io: Server;
@@ -1489,6 +1495,100 @@ describe('Commands', () => {
         cardDiscardedCommand.execute();
       }).toThrow(InvalidPayloadException);
       done();
+    });
+  });
+
+  describe('SaveGameStateCommand', () => {
+    test('should throw GameStateNotFoundException exception', async () => {
+      const saveGameStateCommand = new SaveGameStateCommand(gameService, io, serverSocket, {
+        gameStateId: randomUUID(),
+      });
+
+      await expect(saveGameStateCommand.execute()).rejects.toThrow(GameStateNotFoundException);
+    });
+
+    test('should save game state to file and emit GameStateSaved', async () => {
+      const saveGameStateCommand = new SaveGameStateCommand(gameService, io, serverSocket, {
+        gameStateId: gameState.id,
+      });
+
+      jest.spyOn(FileService, 'storeGameState').mockResolvedValueOnce();
+
+      await saveGameStateCommand.execute();
+
+      clientSocket.on('GameStateSaved', payload => {
+        expect(FileService.storeGameState).toHaveBeenCalled();
+        expect(payload).toBeDefined();
+      });
+    });
+  });
+
+  describe('RetrieveGameStateCommand', () => {
+    test('should throw FailedToRetrieveGameStateException exceptio', async () => {
+      const gameStateId = randomUUID();
+
+      const retrieveGameStateCommand = new RetrieveGameStateCommand(gameService, io, serverSocket, {
+        gameStateId,
+      });
+
+      jest.spyOn(gameService, 'getGameState').mockReturnValueOnce(undefined);
+      jest.spyOn(FileService, 'loadGameState').mockResolvedValueOnce({} as GameStateJson);
+
+      await expect(retrieveGameStateCommand.execute()).rejects.toThrow(FailedToRetrieveGameStateException);
+    });
+
+    test('should retrieve game state if game state exists in repository', async () => {
+      const retrieveGameStateCommand = new RetrieveGameStateCommand(gameService, io, serverSocket, {
+        gameStateId: gameState.id,
+      });
+
+      await retrieveGameStateCommand.execute();
+
+      clientSocket.on('GameStateRetrieved', payload => {
+        expect(payload).toBeInstanceOf(GameState);
+      });
+    });
+
+    test('should load game state from file and emit GameStateRetrieved', async () => {
+      const gameStateId = randomUUID();
+      const gameStateJson: GameStateJson = {
+        id: gameStateId,
+        table: { id: randomUUID(), disposedCards: [] },
+        currentPlayerIndex: 0,
+        gameStatus: GameStatus.NotStarted,
+        light: Lights.BLUE,
+        lobby: {
+          host: {
+            id: 'id',
+            isReady: false,
+            username: 'test',
+            hand: {
+              cards: [],
+            },
+          },
+          id: randomUUID(),
+          lastActivityTime: Date.now(),
+          messages: [],
+          users: [],
+          deck: {
+            id: randomUUID(),
+            cards: [],
+          },
+        },
+      };
+
+      const retrieveGameStateCommand = new RetrieveGameStateCommand(gameService, io, serverSocket, {
+        gameStateId: gameState.id,
+      });
+
+      jest.spyOn(gameService, 'getGameState').mockReturnValueOnce(undefined);
+      jest.spyOn(FileService, 'loadGameState').mockResolvedValueOnce(gameStateJson);
+
+      await retrieveGameStateCommand.execute();
+
+      clientSocket.on('GameStateRetrieved', payload => {
+        expect(payload).toBeDefined();
+      });
     });
   });
 

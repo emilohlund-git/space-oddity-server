@@ -12,6 +12,12 @@ export class InMemoryUserRepository implements UserRepository {
     this.users.set(user.id, user);
   }
 
+  saveMany(players: Player[]): void {
+    for (const player of players) {
+      this.users.set(player.id, player);
+    }
+  }
+
   findByUsername(username: string): Player | undefined {
     const users = this.findAll();
     const user = users.find((u) => u.username === username);

@@ -10,6 +10,8 @@ import LeaveLobbyCommand from '../application/commands/leave-lobby.command';
 import MatchCardsCommand from '../application/commands/match-cards.command';
 import PickedCardCommand from '../application/commands/picked-card.command';
 import PlayedCardCommand from '../application/commands/played-card.command';
+import RetrieveGameStateCommand from '../application/commands/retrieve-game-state.command';
+import SaveGameStateCommand from '../application/commands/save-game-state.command';
 import SendMessageCommand from '../application/commands/send-message.command';
 import StartGameCommand from '../application/commands/start-game.command';
 import UserConnectCommand from '../application/commands/user-connect.command';
@@ -51,6 +53,8 @@ class SocketHandler {
     this.registerCommand('GameOver', GameOverCommand);
     this.registerCommand('UserDisconnect', UserDisconnectCommand);
     this.registerCommand('MatchCards', MatchCardsCommand);
+    this.registerCommand('SaveGameState', SaveGameStateCommand);
+    this.registerCommand('RetrieveGameState', RetrieveGameStateCommand);
   }
 
   public registerCommand<T extends Command>(

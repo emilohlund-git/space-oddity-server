@@ -6,6 +6,8 @@ import { LeaveLobbyPayload } from '../../application/commands/leave-lobby.comman
 import { MatchCardsPayload } from '../../application/commands/match-cards.command';
 import { PickedCardPayload } from '../../application/commands/picked-card.command';
 import { PlayedCardPayload } from '../../application/commands/played-card.command';
+import { RetrieveGameStatePayload } from '../../application/commands/retrieve-game-state.command';
+import { SaveGameStatePayload } from '../../application/commands/save-game-state.command';
 import { SendMessagePayload } from '../../application/commands/send-message.command';
 import { StartGamePayload } from '../../application/commands/start-game.command';
 import { UserConnectPayload } from '../../application/commands/user-connect.command';
@@ -33,6 +35,8 @@ export type ClientEvents = {
   GameOver: (payload: GameOverPayload) => void;
   UserDisconnect: (payload: UserDisconnectPayload) => void;
   MatchCards: (payload: MatchCardsPayload) => void;
+  SaveGameState: (payload: SaveGameStatePayload) => void;
+  RetrieveGameState: (payload: RetrieveGameStatePayload) => void;
 };
 
 export type ServerEvents = {
@@ -50,6 +54,8 @@ export type ServerEvents = {
   GameEnded: () => void;
   UserDisconnected: (user: Player) => void;
   CardsMatched: (gameState: GameState) => void;
+  GameStateSaved: () => void;
+  GameStateRetrieved: (gameState: GameState) => void;
 };
 
 export abstract class Command {

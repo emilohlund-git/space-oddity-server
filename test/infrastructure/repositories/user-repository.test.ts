@@ -25,6 +25,14 @@ describe('UserRepository', () => {
     expect(userRepository.findAll()).toHaveLength(0);
   });
 
+  test('should save many users to the repository', () => {
+    expect(userRepository.findAll().length).toBe(0);
+    userRepository.saveMany([new Player('1', '1'), new Player('2', '2')]);
+    expect(userRepository.findAll().length).toBe(2);
+    userRepository.clear();
+    expect(userRepository.findAll().length).toBe(0);
+  });
+
   test('should add a user to the repository and then clear', (done) => {
     expect(userRepository.findAll().length).toBe(0);
     const user = new User(randomUUID(), 'test');

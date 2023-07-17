@@ -124,6 +124,8 @@ describe('SocketHandler', () => {
         GameOver: (socket, payload) => new mockCommandClass(socket, payload),
         UserDisconnect: (socket, payload) => new mockCommandClass(socket, payload),
         MatchCards: (socket, payload) => new mockCommandClass(socket, payload),
+        SaveGameState: (socket, payload) => new mockCommandClass(socket, payload),
+        RetrieveGameState: (socket, payload) => new mockCommandClass(socket, payload),
       });
 
       // Call the handleConnection method to register event listeners
@@ -167,6 +169,8 @@ describe('SocketHandler', () => {
       expect(mockSocketOn).toHaveBeenCalledWith('GameOver', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('UserDisconnect', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('MatchCards', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('SaveGameState', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('RetrieveGameState', expect.any(Function));
 
       done();
     });
