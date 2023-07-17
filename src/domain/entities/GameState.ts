@@ -37,7 +37,7 @@ class GameState {
     this.table = table;
     this.currentPlayerIndex = 0;
     this.gameStatus = GameStatus.NotStarted;
-    this.light = Lights.RED;
+    this.light = Lights.BLUE;
   }
 
   public startGame(): void {

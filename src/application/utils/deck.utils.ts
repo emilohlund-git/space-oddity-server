@@ -13,9 +13,13 @@ export const getShuffledDeck = (): Deck => {
 
   for (let value = 1; value <= 20; value++) {
     const card = new Card(value);
-    const cardCopy = new Card(value);
     cards.push(card);
-    cards.push(cardCopy);
+    if (card.getValue() === 19) {
+      continue;
+    } else {
+      const cardCopy = new Card(value);
+      cards.push(cardCopy);
+    }
   }
 
   const deck = new Deck();

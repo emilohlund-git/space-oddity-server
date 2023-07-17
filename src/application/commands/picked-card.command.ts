@@ -10,6 +10,7 @@ export type PickedCardPayload = {
   cardId: UUID;
   gameStateId: UUID;
   lobbyId: UUID;
+  fromOpponent: boolean;
 };
 
 class PickedCardCommand extends Command {
@@ -23,7 +24,7 @@ class PickedCardCommand extends Command {
   }
 
   execute(): void {
-    const { lobbyId, gameStateId, userPreviousId, userNewId, cardId } = this.payload;
+    const { lobbyId, fromOpponent, gameStateId, userPreviousId, userNewId, cardId } = this.payload;
 
     const gameState = this.gameService.getGameState(gameStateId);
     this.entityValidator.validateGameStateExists(gameState);
@@ -46,7 +47,7 @@ class PickedCardCommand extends Command {
     const card = this.gameService.getCardService().findById(cardId);
     this.entityValidator.validateCardExists(card);
 
-    if (deck.hasCards()) {
+    if (deck.hasCards() && !fromOpponent) {
       const drawnCard = deck.drawCard();
 
       this.entityValidator.validateCardExists(drawnCard);
