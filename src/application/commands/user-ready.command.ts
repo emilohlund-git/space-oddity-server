@@ -5,7 +5,7 @@ import GameService from '../services/game.service';
 import { EntityValidator } from '../utils/entity.validator';
 
 export type UserReadyPayload = {
-  userId: string;
+  playerId: UUID;
   lobbyId: UUID;
 };
 
@@ -20,12 +20,12 @@ class UserReadyCommand extends Command {
   }
 
   execute(): void {
-    const { userId, lobbyId } = this.payload;
+    const { playerId, lobbyId } = this.payload;
 
     const lobby = this.gameService.getLobbyService().findById(lobbyId);
     this.entityValidator.validateLobbyExists(lobby);
 
-    const user = this.gameService.getUserService().findById(userId);
+    const user = this.gameService.getUserService().findById(playerId);
     this.entityValidator.validatePlayerExists(user);
 
     user.setIsReady();

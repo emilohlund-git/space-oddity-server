@@ -2,16 +2,18 @@ import { UUID } from 'crypto';
 import Card from '../../domain/entities/Card';
 import Deck from '../../domain/entities/Deck';
 import GameState from '../../domain/entities/GameState';
+import Hand from '../../domain/entities/Hand';
 import { Lobby } from '../../domain/entities/Lobby';
 import Player from '../../domain/entities/Player';
 import Table from '../../domain/entities/Table';
+import TwistedCard from '../../domain/entities/TwistedCard';
 import LobbyNotFoundException from '../exceptions/lobby-not-found.exception';
 import { CardService } from '../services/card.service';
 import { TableService } from '../services/table.service';
 import { UserService } from '../services/user.service';
 import { mapJsonToClass } from '../utils/json-mapper';
 import { DeckService } from './deck.service';
-import { CardJson, DeckJson, GameStateJson, LobbyJson, PlayerJson, TableJson } from './file.service';
+import { CardJson, DeckJson, GameStateJson, HandJson, LobbyJson, PlayerJson, TableJson } from './file.service';
 import { LobbyService } from './lobby.service';
 
 class GameService {
@@ -79,35 +81,54 @@ class GameService {
     this.gameStates.delete(gameStateId);
   }
 
-  public createFromLoadedJson(json: GameStateJson): GameState {
-    // Parse the loaded JSON and create entities
-    const gameState = GameService.parseGameState(json);
+  public async createFromLoadedJson(json: GameStateJson): Promise<GameState> {
+    return new Promise((resolve) => {
+      const gameState = GameService.parseGameState(json);
 
-    if (!json.lobby) throw new LobbyNotFoundException();
+      if (!json.lobby) throw new LobbyNotFoundException();
 
-    const userEntities = GameService.parseUserEntities(json.lobby.users);
-    const cardEntities = GameService.parseCardEntities(json.lobby.deck!.cards);
-    const tableEntity = GameService.parseTableEntity(json.table);
-    const deckEntity = GameService.parseDeckEntity(json.lobby.deck!);
-    const lobbyEntity = GameService.parseLobbyEntity(json.lobby);
+      const userEntities = GameService.parseUserEntities(json.lobby.users);
+      const deckCardEntities = GameService.parseCardEntities([...json.lobby.deck!.cards]);
+      const tableEntity = GameService.parseTableEntity(json.table);
+      const deckEntity = GameService.parseDeckEntity(json.lobby.deck!);
+      const lobbyEntity = GameService.parseLobbyEntity(json.lobby);
 
-    // Set the created entities in their respective services
-    this.userService.saveMany(userEntities);
-    this.cardService.saveMany(cardEntities);
-    this.tableService.save(tableEntity);
-    this.deckService.save(deckEntity);
-    this.lobbyService.save(lobbyEntity);
+      for (const user of json.lobby.users) {
+        for (const player of userEntities) {
+          if (user.id === player.id) {
+            const hand = GameService.parseHandEntity(user.hand);
+            const cards = GameService.parseCardEntities(user.hand.cards);
+            this.cardService.saveMany(cards);
+            hand.setCards(cards);
+            player.setHand(hand);
+          }
+        }
+      }
 
-    // Set the parsed gameState in gameStates map
-    gameState.setLobby(lobbyEntity);
-    this.setGameState(gameState);
+      deckEntity.setCards(deckCardEntities);
+      lobbyEntity.setDeck(deckEntity);
+      lobbyEntity.setPlayers(userEntities);
 
-    return gameState;
+      // Set the created entities in their respective services
+      this.userService.saveMany(userEntities);
+      this.cardService.saveMany(deckCardEntities);
+      this.tableService.save(tableEntity);
+      this.deckService.save(deckEntity);
+      this.lobbyService.save(lobbyEntity);
+
+      // Set the parsed gameState in gameStates map
+      gameState.setLobby(lobbyEntity);
+      gameState.setTable(tableEntity);
+      this.setGameState(gameState);
+
+      if (gameState) {
+        resolve(gameState);
+      }
+    });
   }
 
   private static parseGameState(json: GameStateJson): GameState {
     const gameState = mapJsonToClass(json, GameState);
-
     return gameState;
   }
 
@@ -126,8 +147,13 @@ class GameService {
     const cards = <Card[]>[];
 
     for (const c of json) {
-      const card = mapJsonToClass(c, Card);
-      cards.push(card);
+      if (c.specialEffect) {
+        const card = mapJsonToClass(c, TwistedCard);
+        cards.push(card);
+      } else {
+        const card = mapJsonToClass(c, Card);
+        cards.push(card);
+      }
     }
 
     return cards;
@@ -149,6 +175,12 @@ class GameService {
     const lobby = mapJsonToClass(json, Lobby);
 
     return lobby;
+  }
+
+  private static parseHandEntity(json: HandJson): Hand {
+    const hand = mapJsonToClass(json, Hand);
+
+    return hand;
   }
 }
 

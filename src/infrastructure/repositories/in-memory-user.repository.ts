@@ -1,11 +1,12 @@
+import { UUID } from 'crypto';
 import Player from '../../domain/entities/Player';
 import { UserRepository } from '../../domain/repositories/user-repository.interface';
 
 export class InMemoryUserRepository implements UserRepository {
-  private users: Map<string, Player>;
+  private users: Map<UUID, Player>;
 
   constructor() {
-    this.users = new Map<string, Player>();
+    this.users = new Map<UUID, Player>();
   }
 
   save(user: Player): void {
@@ -25,11 +26,11 @@ export class InMemoryUserRepository implements UserRepository {
     return undefined;
   }
 
-  findById(id: string): Player | undefined {
-    return this.users.get(id);
+  findById(userId: UUID): Player | undefined {
+    return this.users.get(userId);
   }
 
-  remove(userId: string): void {
+  remove(userId: UUID): void {
     this.users.delete(userId);
   }
 
@@ -44,7 +45,7 @@ export class InMemoryUserRepository implements UserRepository {
   }
 
   clear() {
-    this.users = new Map<string, Player>();
+    this.users = new Map<UUID, Player>();
   }
 
   // Implement other methods as needed

@@ -20,20 +20,21 @@ import UserNotFoundException from '../exceptions/user-not-found.exception';
 import { GameStateJson } from '../services/file.service';
 
 export class EntityValidator implements Validator {
-  validateRetrievedGameState(gameStateJson: GameStateJson) {
-    if (!gameStateJson.id || Object.keys(gameStateJson).length === 0) {
+  validateRetrievedGameState(gameStateJson?: GameStateJson): asserts gameStateJson is GameStateJson {
+    if (!gameStateJson?.id || Object.keys(gameStateJson).length === 0) {
       throw new FailedToRetrieveGameStateException();
     }
   }
 
   validateCardInHand(player: Player, card: Card): void {
-    if (!player.getHand().getCards().includes(card)) {
+    if (!player.getHand().getCards().find((c) => c.id === card.id)) {
       throw new CardNotInHandException(`👋 Card: ${card.id} is not in the user's hand.`);
     }
   }
 
   validatePlayerInLobby(lobby: Lobby, player: Player): void {
-    if (!lobby.getPlayers().includes(player)) {
+    const existingPlayer = lobby.getPlayers().find((p) => p.id === player.id);
+    if (!existingPlayer) {
       throw new PlayerNotInLobbyException();
     }
   }

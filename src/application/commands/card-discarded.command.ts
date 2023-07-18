@@ -8,7 +8,7 @@ export type CardDiscardedPayload = {
   gameStateId: UUID;
   cardId: UUID;
   lobbyId: UUID;
-  userId: string;
+  playerId: UUID;
 };
 
 class CardDiscardedCommand extends Command {
@@ -22,7 +22,7 @@ class CardDiscardedCommand extends Command {
   }
 
   public execute(): void {
-    const { gameStateId, cardId, lobbyId, userId } = this.payload;
+    const { gameStateId, cardId, lobbyId, playerId } = this.payload;
 
     const gameState = this.gameService.getGameState(gameStateId);
     this.entityValidator.validateGameStateExists(gameState);
@@ -31,7 +31,7 @@ class CardDiscardedCommand extends Command {
 
     this.entityValidator.validateLobbyHasPlayers(gameState.lobby);
 
-    const owner = gameState.lobby.getPlayers().find((u) => u.id === userId);
+    const owner = gameState.lobby.getPlayers().find((u) => u.id === playerId);
     this.entityValidator.validatePlayerExists(owner);
 
     const card = this.gameService.getCardService().findById(cardId);

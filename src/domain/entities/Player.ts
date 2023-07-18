@@ -1,3 +1,4 @@
+import { UUID } from 'crypto';
 import Card from './Card';
 import Hand from './Hand';
 import TwistedCard from './TwistedCard';
@@ -8,14 +9,18 @@ class Player extends User {
 
   private isReady: boolean = false;
 
-  constructor(id: string, username: string, hand: Hand = new Hand()) {
-    super(id, username);
+  constructor(username: string, hand: Hand = new Hand(), id?: UUID) {
+    super(username, id);
 
     this.hand = hand;
   }
 
   public getId(): string {
     return this.id;
+  }
+
+  public setId(id: UUID): void {
+    this.id = id;
   }
 
   public getUserName(): string {

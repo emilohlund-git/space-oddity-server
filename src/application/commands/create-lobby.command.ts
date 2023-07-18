@@ -1,3 +1,4 @@
+import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
 import { Lobby } from '../../domain/entities/Lobby';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
@@ -5,7 +6,9 @@ import GameService from '../services/game.service';
 import { getShuffledDeck } from '../utils/deck.utils';
 import { EntityValidator } from '../utils/entity.validator';
 
-export type CreateLobbyPayload = {};
+export type CreateLobbyPayload = {
+  playerId: UUID;
+};
 
 class CreateLobbyCommand extends Command {
   constructor(
@@ -18,7 +21,9 @@ class CreateLobbyCommand extends Command {
   }
 
   execute(): void {
-    const user = this.gameService.getUserService().findById(this.socket.id);
+    const { playerId } = this.payload;
+
+    const user = this.gameService.getUserService().findById(playerId);
     this.entityValidator.validatePlayerExists(user);
 
     const lobby = new Lobby(user);

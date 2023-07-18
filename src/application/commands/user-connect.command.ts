@@ -19,22 +19,18 @@ class UserConnectCommand extends Command {
     super(payload, new EntityValidator());
   }
 
-  execute(): any {
+  execute(): void {
     const { username } = this.payload;
 
     logger.info(`👤 ${username} just connected to the server.`);
 
-    const userExists = this.gameService.getUserService().findById(this.socket.id);
+    const userExists = this.gameService.getUserService().findByUsername(username);
     this.entityValidator.validatePlayerAlreadyExists(userExists);
 
-    const userToCreate = new Player(this.socket.id, username);
-
+    const userToCreate = new Player(username);
     this.gameService.getUserService().save(userToCreate);
-    const userCreated = this.gameService.getUserService().findById(this.socket.id);
 
-    this.io.to(this.socket.id).emit('UserConnected', userCreated);
-
-    return userCreated;
+    this.io.to(this.socket.id).emit('UserConnected', userToCreate);
   }
 }
 

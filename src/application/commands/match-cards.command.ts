@@ -6,7 +6,7 @@ import GameService from '../services/game.service';
 import { EntityValidator } from '../utils/entity.validator';
 
 export type MatchCardsPayload = {
-  userId: string;
+  playerId: UUID;
   card1Id: UUID;
   card2Id: UUID;
   gameStateId: UUID;
@@ -24,7 +24,7 @@ class MatchCardsCommand extends Command {
   }
 
   execute(): void {
-    const { userId, card1Id, card2Id, gameStateId, lobbyId } = this.payload;
+    const { playerId, card1Id, card2Id, gameStateId, lobbyId } = this.payload;
 
     const gameState = this.gameService.getGameState(gameStateId);
     this.entityValidator.validateGameStateExists(gameState);
@@ -32,7 +32,7 @@ class MatchCardsCommand extends Command {
     const lobby = this.gameService.getLobbyService().findById(lobbyId);
     this.entityValidator.validateLobbyExists(lobby);
 
-    const user = this.gameService.getUserService().findById(userId);
+    const user = this.gameService.getUserService().findById(playerId);
     this.entityValidator.validatePlayerExists(user);
 
     const card1 = this.gameService.getCardService().findById(card1Id) as Card;

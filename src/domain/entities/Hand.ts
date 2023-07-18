@@ -15,6 +15,10 @@ class Hand {
     return this.cards;
   }
 
+  public setCards(cards: Card[]): void {
+    this.cards = cards;
+  }
+
   public addCard(card: Card): void {
     this.cards.push(card);
   }

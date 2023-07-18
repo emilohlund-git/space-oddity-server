@@ -55,7 +55,10 @@ export type ServerEvents = {
   UserDisconnected: (user: Player) => void;
   CardsMatched: (gameState: GameState) => void;
   GameStateSaved: () => void;
-  GameStateRetrieved: (gameState: GameState) => void;
+  GameStateRetrieved: (payload: {
+    gameState: GameState,
+    player: Player,
+  }) => void;
 };
 
 export abstract class Command {

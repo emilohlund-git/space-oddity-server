@@ -6,7 +6,7 @@ import GameService from '../services/game.service';
 import { EntityValidator } from '../utils/entity.validator';
 
 export type UserDisconnectPayload = {
-  userId: string;
+  playerId: UUID;
   lobbyId?: UUID;
   gameStateId?: UUID;
 };
@@ -22,18 +22,18 @@ class UserDisconnectCommand extends Command {
   }
 
   execute(): any {
-    const { lobbyId, userId, gameStateId } = this.payload;
+    const { lobbyId, playerId, gameStateId } = this.payload;
 
-    logger.info(`👤 ${userId} just disconnected from the server.`);
+    logger.info(`👤 ${playerId} just disconnected from the server.`);
 
-    const user = this.gameService.getUserService().findById(userId);
+    const user = this.gameService.getUserService().findById(playerId);
     this.entityValidator.validatePlayerExists(user);
 
     if (gameStateId) {
       const gameState = this.gameService.getGameState(gameStateId);
 
       if (gameState) {
-        gameState.lobby?.removeUser(userId);
+        gameState.lobby?.removeUser(playerId);
         if (gameState.lobby?.getPlayers().length === 0) {
           gameState.setLobby(undefined);
           this.gameService.removeGameState(gameStateId);
@@ -45,7 +45,7 @@ class UserDisconnectCommand extends Command {
       const lobby = this.gameService.getLobbyService().findById(lobbyId);
       this.entityValidator.validateLobbyExists(lobby);
 
-      lobby.removeUser(userId);
+      lobby.removeUser(playerId);
       if (lobby.getPlayers().length === 0) {
         this.gameService.getLobbyService().remove(lobby.id);
       }

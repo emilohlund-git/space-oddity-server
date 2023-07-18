@@ -40,6 +40,7 @@ export interface CardJson {
   type: CardType;
   value: number;
   graphic: string;
+  specialEffect?: number;
 }
 
 export interface TableJson {
@@ -69,25 +70,30 @@ export class FileService {
     }
   }
 
-  static async storeGameState(gameState: GameState): Promise<void> {
+  static async storeGameState(gameState: GameState): Promise<boolean> {
     const folderPath = './states';
     try {
-      await fs.mkdir(folderPath, { recursive: true });
-      await fs.writeFile(`./states/${gameState.id}.json`, JSON.stringify(gameState));
-      return await Promise.resolve();
+      f.mkdirSync(folderPath, { recursive: true });
+      f.writeFileSync(`./states/${gameState.id}.json`, JSON.stringify(gameState));
+      const memoryUsage = process.memoryUsage();
+      console.log(memoryUsage);
+      return await Promise.resolve(true);
     } catch (error) {
+      console.error('Error occurred while writing file:', error);
       return Promise.reject(error);
     }
   }
 
-  static async loadGameState(gameStateId: UUID): Promise<GameStateJson> {
+  static async loadGameState(gameStateId: UUID): Promise<GameStateJson | undefined> {
     const folderPath = './states';
-    try {
-      const result = await fs.readFile(`${folderPath}/${gameStateId}.json`);
-      const gameStateJson: GameStateJson = JSON.parse(result.toString());
-      return await Promise.resolve(gameStateJson);
-    } catch (error) {
-      return Promise.reject(error);
+    if (f.existsSync(`${folderPath}/${gameStateId}.json`)) {
+      try {
+        const result = await fs.readFile(`${folderPath}/${gameStateId}.json`);
+        const gameStateJson: GameStateJson = JSON.parse(result.toString());
+        return await Promise.resolve(gameStateJson);
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
   }
 }

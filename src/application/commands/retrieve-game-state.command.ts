@@ -7,6 +7,10 @@ import { EntityValidator } from '../utils/entity.validator';
 
 export type RetrieveGameStatePayload = {
   gameStateId: UUID;
+  reconnectingPlayer: {
+    username: string;
+    id: UUID;
+  };
 };
 
 class RetrieveGameStateCommand extends Command {
@@ -20,21 +24,23 @@ class RetrieveGameStateCommand extends Command {
   }
 
   async execute(): Promise<void> {
-    const { gameStateId } = this.payload;
-
-    const existingGameState = this.gameService.getGameState(gameStateId);
-
-    if (existingGameState) {
-      this.socket.emit('GameStateRetrieved', existingGameState);
-      return;
-    }
+    const { gameStateId, reconnectingPlayer } = this.payload;
 
     const gameStateJson = await FileService.loadGameState(gameStateId);
     this.entityValidator.validateRetrievedGameState(gameStateJson);
 
-    const gameState = this.gameService.createFromLoadedJson(gameStateJson);
+    const gameState = await this.gameService.createFromLoadedJson(gameStateJson);
+    this.entityValidator.validateLobbyExists(gameState.lobby);
 
-    this.socket.emit('GameStateRetrieved', gameState);
+    const player = gameState.lobby.getPlayers().find((p) => p.id === reconnectingPlayer.id);
+    this.entityValidator.validatePlayerExists(player);
+
+    this.socket.join(gameState.lobby.id);
+
+    this.socket.emit('GameStateRetrieved', {
+      gameState,
+      player,
+    });
   }
 }
 
