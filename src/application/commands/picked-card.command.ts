@@ -5,8 +5,8 @@ import GameService from '../services/game.service';
 import { EntityValidator } from '../utils/entity.validator';
 
 export type PickedCardPayload = {
-  userPreviousId: string;
-  userNewId: string;
+  playerPreviousId: UUID;
+  playerNewId: UUID;
   cardId: UUID;
   gameStateId: UUID;
   lobbyId: UUID;
@@ -24,21 +24,21 @@ class PickedCardCommand extends Command {
   }
 
   execute(): void {
-    const { lobbyId, fromOpponent, gameStateId, userPreviousId, userNewId, cardId } = this.payload;
+    const { lobbyId, fromOpponent, gameStateId, playerPreviousId, playerNewId, cardId } = this.payload;
 
     const gameState = this.gameService.getGameState(gameStateId);
     this.entityValidator.validateGameStateExists(gameState);
 
-    const lobby = gameState.getLobby();
+    const lobby = this.gameService.getLobbyService().findById(lobbyId);
     this.entityValidator.validateLobbyExists(lobby);
 
     const deck = lobby.getDeck();
     this.entityValidator.validateDeckExists(deck);
 
-    const previousOwner = this.gameService.getUserService().findById(userPreviousId);
+    const previousOwner = this.gameService.getUserService().findById(playerPreviousId);
     this.entityValidator.validatePlayerExists(previousOwner);
 
-    const newOwner = this.gameService.getUserService().findById(userNewId);
+    const newOwner = this.gameService.getUserService().findById(playerNewId);
     this.entityValidator.validatePlayerExists(newOwner);
 
     this.entityValidator.validatePlayerInLobby(lobby, newOwner);

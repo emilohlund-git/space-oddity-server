@@ -1,10 +1,14 @@
+import { UUID, randomUUID } from 'crypto';
+
 export class User {
-  public id: string;
+  public id: UUID = randomUUID();
 
   public username: string;
 
-  constructor(id: string, username: string, public readonly lobby?: string) {
-    this.id = id;
+  constructor(username: string, id?: UUID) {
+    if (id) {
+      this.id = id;
+    }
     this.username = username;
   }
 }

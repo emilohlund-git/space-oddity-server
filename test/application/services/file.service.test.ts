@@ -46,12 +46,12 @@ describe('FileService', () => {
       const gameState = new GameState(new Table());
 
       const mockMkdir = jest.spyOn(fs, 'mkdir');
-      mockMkdir.mockRejectedValueOnce(new Error('Failed to create directory'));
+      mockMkdir.mockRejectedValueOnce(new Error('Test'));
 
       const mockWriteFile = jest.spyOn(fs, 'writeFile');
       mockWriteFile.mockResolvedValue(undefined);
 
-      await expect(FileService.storeGameState(gameState)).rejects.toThrowError('Failed to create directory');
+      await expect(FileService.storeGameState(gameState)).rejects.toThrowError('Test');
 
       expect(mockMkdir).toHaveBeenCalledWith('./states', { recursive: true });
 
@@ -80,12 +80,18 @@ describe('FileService', () => {
       const mockReadFile = jest.spyOn(fs, 'readFile');
       mockReadFile.mockRejectedValue(new Error('Failed to read file'));
 
+      const mockExists = jest.spyOn(f, 'existsSync');
+      mockExists.mockReturnValueOnce(true);
+
       await expect(FileService.loadGameState(gameStateId)).rejects.toThrowError('Failed to read file');
 
       expect(mockReadFile).toHaveBeenCalledWith(`./states/${gameStateId}.json`);
     });
 
     it('should load the game state file from disk', async () => {
+      const mockExists = jest.spyOn(f, 'existsSync');
+      mockExists.mockReturnValueOnce(true);
+
       const mockReadFile = jest.spyOn(fs, 'readFile');
 
       const gameStateId = '8f88262e-00cd-4be6-86a7-0a70bdbcb979';

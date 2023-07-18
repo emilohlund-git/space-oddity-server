@@ -18,7 +18,7 @@ describe('CardRepository', () => {
     userService = new UserService(userRepository);
     cardRepository = new InMemoryCardRepository();
 
-    userService.save(new Player(randomUUID(), 'test', new Hand()));
+    userService.save(new Player('Player1', new Hand(), randomUUID()));
   });
 
   test('should add a card to the repository and then clear', (done) => {
@@ -43,7 +43,7 @@ describe('CardRepository', () => {
   });
 
   test('should find a card by player', (done) => {
-    const testUser = userService.findByUsername('test');
+    const testUser = userService.findByUsername('Player1');
     const testCard = new Card(0);
     cardRepository.save(testCard);
 

@@ -3,70 +3,22 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server, Socket as ServerSocket } from 'socket.io';
 import Client, { Socket as ClientSocket } from 'socket.io-client';
-import { CardService } from '../../src/application/services/card.service';
-import { DeckService } from '../../src/application/services/deck.service';
 import GameService from '../../src/application/services/game.service';
-import { LobbyService } from '../../src/application/services/lobby.service';
-import { TableService } from '../../src/application/services/table.service';
-import { UserService } from '../../src/application/services/user.service';
 import { EntityValidator } from '../../src/application/utils/entity.validator';
-import GameState from '../../src/domain/entities/GameState';
-import { Lobby } from '../../src/domain/entities/Lobby';
-import Player from '../../src/domain/entities/Player';
-import Table from '../../src/domain/entities/Table';
 import { Command } from '../../src/domain/interfaces/command.interface';
-import { CardRepository } from '../../src/domain/repositories/card-repository.interface';
-import { DeckRepository } from '../../src/domain/repositories/deck-repository.interface';
-import { LobbyRepository } from '../../src/domain/repositories/lobby-repository.interface';
-import { TableRepository } from '../../src/domain/repositories/table-repository.interface';
-import { UserRepository } from '../../src/domain/repositories/user-repository.interface';
-import { InMemoryCardRepository } from '../../src/infrastructure/repositories/in-memory-card.repository';
-import { InMemoryDeckRepository } from '../../src/infrastructure/repositories/in-memory-deck.repository';
-import { InMemoryLobbyRepository } from '../../src/infrastructure/repositories/in-memory-lobby.repository';
-import { InMemoryTableRepository } from '../../src/infrastructure/repositories/in-memory-table.repository';
-import { InMemoryUserRepository } from '../../src/infrastructure/repositories/in-memory-user.repository';
 import SocketHandler from '../../src/infrastructure/socket.handler';
+import { mockGameService } from '../utils/game-service.mock';
 dotenv.config();
 
 describe('SocketHandler', () => {
   let io: Server;
   let serverSocket: ServerSocket;
   let clientSocket: ClientSocket;
-  let cardRepository: CardRepository;
-  let cardService: CardService;
-  let userRepository: UserRepository;
-  let tableRepository: TableRepository;
-  let deckRepository: DeckRepository;
-  let userService: UserService;
-  let lobbyRepository: LobbyRepository;
-  let lobbyService: LobbyService;
-  let tableService: TableService;
-  let deckService: DeckService;
   let gameService: GameService;
-  let gameState: GameState;
 
   beforeAll((done) => {
-    cardRepository = new InMemoryCardRepository();
-    userRepository = new InMemoryUserRepository();
-    lobbyRepository = new InMemoryLobbyRepository();
-    tableRepository = new InMemoryTableRepository();
-    deckRepository = new InMemoryDeckRepository();
-    cardService = new CardService(cardRepository);
-    userService = new UserService(userRepository);
-    lobbyService = new LobbyService(lobbyRepository);
-    tableService = new TableService(tableRepository);
-    deckService = new DeckService(deckRepository);
-    gameState = new GameState(new Table());
-    gameState.setLobby(new Lobby(new Player('12345', 'testing')));
-    gameService = new GameService(
-      userService,
-      cardService,
-      tableService,
-      deckService,
-      lobbyService,
-    );
-
-    gameService.setGameState(gameState);
+    const { mockedGameService } = mockGameService();
+    gameService = mockedGameService;
 
     const httpServer = createServer();
     io = new Server(httpServer);
@@ -79,9 +31,6 @@ describe('SocketHandler', () => {
       });
       clientSocket.on('connect', done);
     });
-
-    userRepository.clear();
-    lobbyRepository.clear();
   });
 
   afterAll(() => {
@@ -92,21 +41,17 @@ describe('SocketHandler', () => {
 
   describe('handleConnection', () => {
     test('should register event listeners for each command', (done) => {
-      // Define a mock command and payload
       class MockCommand extends Command {
         constructor(private socket: ServerSocket, private payload: any) {
           super(payload, new EntityValidator());
         }
 
-        execute(): void {
-          // Mock implementation
-        }
+        execute(): void { /* Mock implementation */ }
       }
 
       const mockCommandClass = MockCommand as any;
       const mockPayload = { test: 'payload' };
 
-      // Register the mock command in the commandFactory
       const socketHandler = new SocketHandler(io, gameService);
 
       socketHandler.setCommands({
@@ -128,13 +73,10 @@ describe('SocketHandler', () => {
         RetrieveGameState: (socket, payload) => new mockCommandClass(socket, payload),
       });
 
-      // Call the handleConnection method to register event listeners
       socketHandler.handleConnection();
 
-      // Simulate the 'TestEvent' being emitted by the clientSocket
       clientSocket.emit('UserConnect', mockPayload);
 
-      // Verify that the command was executed
       serverSocket.on('UserConnect', (payload) => {
         expect(payload).toEqual(mockPayload);
         done();

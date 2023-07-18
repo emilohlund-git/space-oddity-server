@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
+import Hand from '../../../src/domain/entities/Hand';
 import Player from '../../../src/domain/entities/Player';
-import { User } from '../../../src/domain/entities/User';
 import { UserRepository } from '../../../src/domain/repositories/user-repository.interface';
 import { InMemoryUserRepository } from '../../../src/infrastructure/repositories/in-memory-user.repository';
 
@@ -12,22 +12,25 @@ describe('UserRepository', () => {
   });
 
   test('should remove several players at once', () => {
-    const player = new Player('1', 'test1');
-    const player2 = new Player('2', 'test2');
+    const player1 = new Player('Player1', new Hand(), randomUUID());
+    const player2 = new Player('Player2', new Hand(), randomUUID());
 
-    userRepository.save(player);
+    userRepository.save(player1);
     userRepository.save(player2);
 
     expect(userRepository.findAll()).toHaveLength(2);
 
-    userRepository.removeMany([player, player2]);
+    userRepository.removeMany([player1, player2]);
 
     expect(userRepository.findAll()).toHaveLength(0);
   });
 
   test('should save many users to the repository', () => {
+    const player1 = new Player('Player1', new Hand(), randomUUID());
+    const player2 = new Player('Player2', new Hand(), randomUUID());
+
     expect(userRepository.findAll().length).toBe(0);
-    userRepository.saveMany([new Player('1', '1'), new Player('2', '2')]);
+    userRepository.saveMany([player1, player2]);
     expect(userRepository.findAll().length).toBe(2);
     userRepository.clear();
     expect(userRepository.findAll().length).toBe(0);
@@ -35,8 +38,8 @@ describe('UserRepository', () => {
 
   test('should add a user to the repository and then clear', (done) => {
     expect(userRepository.findAll().length).toBe(0);
-    const user = new User(randomUUID(), 'test');
-    userRepository.save(user);
+    const player1 = new Player('Player1', new Hand(), randomUUID());
+    userRepository.save(player1);
     expect(userRepository.findAll().length).toBe(1);
     userRepository.clear();
     expect(userRepository.findAll().length).toBe(0);
@@ -44,10 +47,10 @@ describe('UserRepository', () => {
   });
 
   test('should find a user by username and id', (done) => {
-    let user = new User(randomUUID(), 'test');
-    userRepository.save(user);
-    expect(userRepository.findById(user.id)).toBeDefined();
-    expect(userRepository.findByUsername(user.username)).toBeDefined();
+    const player1 = new Player('Player1', new Hand(), randomUUID());
+    userRepository.save(player1);
+    expect(userRepository.findById(player1.id)).toBeDefined();
+    expect(userRepository.findByUsername(player1.username)).toBeDefined();
     done();
   });
 

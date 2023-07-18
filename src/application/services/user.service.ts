@@ -1,3 +1,4 @@
+import { UUID } from 'crypto';
 import Player from '../../domain/entities/Player';
 import { UserRepository } from '../../domain/repositories/user-repository.interface';
 
@@ -18,7 +19,7 @@ export class UserService {
     }
   }
 
-  public remove(userId: string) {
+  public remove(userId: UUID) {
     this.userRepository.remove(userId);
   }
 
@@ -26,7 +27,7 @@ export class UserService {
     this.userRepository.removeMany(players);
   }
 
-  public findById(userId: string) {
+  public findById(userId: UUID) {
     return this.userRepository.findById(userId);
   }
 

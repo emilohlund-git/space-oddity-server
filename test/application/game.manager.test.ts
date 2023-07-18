@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import GameManager from '../../src/application/game.manager';
 import { CardService } from '../../src/application/services/card.service';
 import { DeckService } from '../../src/application/services/deck.service';
@@ -9,6 +10,7 @@ import { FIVE_MIN_IN_MS, FOUR_MIN_IN_MS } from '../../src/application/utils/cons
 import Card from '../../src/domain/entities/Card';
 import Deck from '../../src/domain/entities/Deck';
 import GameState from '../../src/domain/entities/GameState';
+import Hand from '../../src/domain/entities/Hand';
 import { Lobby } from '../../src/domain/entities/Lobby';
 import Player from '../../src/domain/entities/Player';
 import Table from '../../src/domain/entities/Table';
@@ -59,7 +61,7 @@ describe('GameManager', () => {
     deck = new Deck();
     deck.addCard(card);
     deckService.save(deck);
-    player = new Player('12345', 'testing');
+    player = new Player('Player1', new Hand(), randomUUID());
     userService.save(player);
     lobby = new Lobby(player);
     lobby.setDeck(deck);

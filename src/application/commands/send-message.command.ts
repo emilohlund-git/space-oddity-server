@@ -6,7 +6,7 @@ import GameService from '../services/game.service';
 import { EntityValidator } from '../utils/entity.validator';
 
 export type SendMessagePayload = {
-  userId: string;
+  playerId: UUID;
   lobbyId: UUID;
   message: string;
 };
@@ -22,9 +22,9 @@ class SendMessageCommand extends Command {
   }
 
   execute(): void {
-    const { userId, lobbyId, message } = this.payload;
+    const { playerId, lobbyId, message } = this.payload;
 
-    const player = this.gameService.getUserService().findById(userId);
+    const player = this.gameService.getUserService().findById(playerId);
     this.entityValidator.validatePlayerExists(player);
 
     const lobby = this.gameService.getLobbyService().findById(lobbyId);

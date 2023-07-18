@@ -126,6 +126,10 @@ class GameState {
     this.lobby = lobby;
   }
 
+  public setTable(table: Table): void {
+    this.table = table;
+  }
+
   public getPlayerWithLeastAmountOfCards(): Player {
     if (!this.lobby) {
       throw new LobbyNotFoundException('Lobby does not exist for GameState');

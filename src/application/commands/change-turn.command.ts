@@ -7,6 +7,7 @@ import { EntityValidator } from '../utils/entity.validator';
 export type ChangeTurnPayload = {
   gameStateId: UUID;
   lobbyId: UUID;
+  playerId: UUID;
 };
 
 class ChangeTurnCommand extends Command {
@@ -20,7 +21,7 @@ class ChangeTurnCommand extends Command {
   }
 
   public execute(): void {
-    const { gameStateId, lobbyId } = this.payload;
+    const { playerId, gameStateId, lobbyId } = this.payload;
 
     const gameState = this.gameService.getGameState(gameStateId);
     this.entityValidator.validateGameStateExists(gameState);
@@ -29,7 +30,7 @@ class ChangeTurnCommand extends Command {
 
     this.entityValidator.validateLobbyHasPlayers(gameState.lobby);
 
-    this.entityValidator.validateIsYourTurn(gameState, this.socket.id);
+    this.entityValidator.validateIsYourTurn(gameState, playerId);
 
     gameState.nextTurn();
 

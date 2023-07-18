@@ -147,7 +147,7 @@ describe('Entities', () => {
 
   describe('Player', () => {
     test('should retrieve a special card from the players hand, undefined if none exists', () => {
-      player = new Player(randomUUID(), 'test-player', new Hand());
+      player = new Player('Player1', new Hand(), randomUUID());
       const specialCard = new TwistedCard(22, SpecialEffect.SwapHand);
       const specialCard2 = new TwistedCard(23, SpecialEffect.SwitchLight);
       player.getHand().addCards([new Card(0), new Card(1), specialCard, specialCard2]);
@@ -159,16 +159,14 @@ describe('Entities', () => {
     });
 
     test('Should create a player, add a new hand to the player with 5 random cards', (done) => {
-      player = new Player(randomUUID(), 'test-player', new Hand());
+      player = new Player('Player1', new Hand(), randomUUID());
       player.getHand().addCards(deck.drawCards(5));
       expect(player.getHand().getCards().length).toBe(5);
       done();
     });
 
     test('Should add cards to players hand then remove one', (done) => {
-      const playerId = randomUUID();
-      const playerHand = new Hand();
-      player = new Player(playerId, 'test-player', playerHand);
+      player = new Player('Player1', new Hand(), randomUUID());
 
       expect(player.getHand().getCards().length).toBe(0);
 
@@ -192,14 +190,19 @@ describe('Entities', () => {
     test('Should get and set players information', (done) => {
       const playerId = randomUUID();
       const playerHand = new Hand();
-      player = new Player(playerId, 'test-player', playerHand);
+      player = new Player('Player1', playerHand, playerId);
       expect(player.getId()).toBe(playerId);
-      expect(player.getUserName()).toBe('test-player');
+      expect(player.getUserName()).toBe('Player1');
       expect(player.getHand()).toBe(playerHand);
 
       const newPlayerHand = new Hand();
       player.setHand(newPlayerHand);
       expect(player.getHand()).toBe(newPlayerHand);
+
+      const newPlayerId = randomUUID();
+      player.setId(newPlayerId);
+
+      expect(player.getId()).toBe(newPlayerId);
 
       done();
     });
@@ -242,7 +245,7 @@ describe('Entities', () => {
 
       beforeEach(() => {
         gameState = new GameState(new Table());
-        player = new Player('1234', 'test');
+        player = new Player('Player1', new Hand(), randomUUID());
         lobby = new Lobby(player);
         lobby.setDeck(new Deck());
         gameState.setLobby(lobby);
@@ -275,10 +278,10 @@ describe('Entities', () => {
 
     test('should set current player to Player2', (done) => {
       const gameState = new GameState(new Table());
-      const testPlayer = new Player('1234', 'test', new Hand());
-      const testPlayer2 = new Player('2345', 'test2', new Hand());
-      const lobby = new Lobby(testPlayer);
-      lobby.addUser(testPlayer2);
+      const player1 = new Player('Player1', new Hand(), randomUUID());
+      const player2 = new Player('Player2', new Hand(), randomUUID());
+      const lobby = new Lobby(player1);
+      lobby.addUser(player2);
       const testDeck = new Deck();
       const card1 = new Card(0);
       const card2 = new Card(0);
@@ -290,9 +293,9 @@ describe('Entities', () => {
       gameState.setLobby(lobby);
       gameState.startGame();
 
-      expect(testPlayer.getHand().getCards().length).toBe(2);
-      expect(testPlayer2.getHand().getCards().length).toBe(1);
-      expect(gameState.getCurrentPlayer()).toBe(testPlayer2);
+      expect(player1.getHand().getCards().length).toBe(2);
+      expect(player2.getHand().getCards().length).toBe(1);
+      expect(gameState.getCurrentPlayer()).toBe(player2);
 
       done();
     });
@@ -300,47 +303,48 @@ describe('Entities', () => {
     test('should throw CardNotInHandException exception', (done) => {
       expect(() => {
         const gameState = new GameState(new Table());
-        const testPlayer = new Player('1234', 'test');
+        const player1 = new Player('Player1', new Hand(), randomUUID());
         const testHand = new Hand();
-        const lobby = new Lobby(testPlayer);
+        const lobby = new Lobby(player1);
         const testDeck = new Deck();
         const card1 = new Card(0);
         const card2 = new Card(0);
-        testPlayer.setHand(testHand);
+        player1.setHand(testHand);
         testDeck.addCard(card1);
         testDeck.addCard(card2);
         lobby.setDeck(testDeck);
         gameState.setLobby(lobby);
-        gameState.matchCards(testPlayer, card1, card2);
+        gameState.matchCards(player1, card1, card2);
       }).toThrow(CardNotInHandException);
       done();
     });
 
     test('should match two cards', (done) => {
       const gameState = new GameState(new Table());
-      const testPlayer = new Player('1234', 'test');
+      const player1 = new Player('Player1', new Hand(), randomUUID());
       const testHand = new Hand();
-      const lobby = new Lobby(testPlayer);
+      const lobby = new Lobby(player1);
       const testDeck = new Deck();
       const card1 = new Card(0);
       const card2 = new Card(0);
       testHand.addCards([card1, card2]);
-      testPlayer.setHand(testHand);
+      player1.setHand(testHand);
       testDeck.addCard(card1);
       testDeck.addCard(card2);
       lobby.setDeck(testDeck);
       gameState.setLobby(lobby);
-      gameState.matchCards(testPlayer, card1, card2);
+      gameState.matchCards(player1, card1, card2);
 
-      expect(testPlayer.getHand().getCards().includes(card1)).toBe(false);
-      expect(testPlayer.getHand().getCards().includes(card2)).toBe(false);
+      expect(player1.getHand().getCards().includes(card1)).toBe(false);
+      expect(player1.getHand().getCards().includes(card2)).toBe(false);
 
       done();
     });
 
     test('should return the GameState lobby', (done) => {
+      const player1 = new Player('Player1', new Hand(), randomUUID());
       const gameState = new GameState(new Table());
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const lobby = new Lobby(player1);
       lobby.setDeck(new Deck());
       gameState.setLobby(lobby);
 
@@ -350,8 +354,9 @@ describe('Entities', () => {
     });
 
     test('should throw DeckNotFoundException exception', (done) => {
+      const player1 = new Player('Player1', new Hand(), randomUUID());
       const gameState = new GameState(new Table());
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const lobby = new Lobby(player1);
       lobby.setDeck(undefined);
       gameState.setLobby(lobby);
 
@@ -363,8 +368,9 @@ describe('Entities', () => {
     });
 
     test('should throw LobbyNotFoundException exception', (done) => {
+      const player1 = new Player('Player1', new Hand(), randomUUID());
       const gameState = new GameState(new Table());
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const lobby = new Lobby(player1);
       lobby.setDeck(new Deck());
       gameState.setLobby(lobby);
       gameState.startGame();
@@ -378,8 +384,9 @@ describe('Entities', () => {
     });
 
     test('should throw LobbyNotFoundException exception', (done) => {
+      const player1 = new Player('Player1', new Hand(), randomUUID());
       const gameState = new GameState(new Table());
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const lobby = new Lobby(player1);
       lobby.setDeck(new Deck());
       gameState.setLobby(lobby);
       gameState.startGame();
@@ -393,8 +400,9 @@ describe('Entities', () => {
     });
 
     test('should throw LobbyNotFoundException exception', (done) => {
+      const player1 = new Player('Player1', new Hand(), randomUUID());
       const gameState = new GameState(new Table());
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const lobby = new Lobby(player1);
       lobby.setDeck(new Deck());
       gameState.setLobby(lobby);
       gameState.startGame();
@@ -408,8 +416,9 @@ describe('Entities', () => {
     });
 
     test('should throw LobbyNotFoundException exception', (done) => {
+      const player1 = new Player('Player1', new Hand(), randomUUID());
       const gameState = new GameState(new Table());
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const lobby = new Lobby(player1);
       lobby.setDeck(new Deck());
       gameState.setLobby(undefined);
 
@@ -423,19 +432,22 @@ describe('Entities', () => {
 
   describe('Lobby', () => {
     test('should get the lobbies host, then change host', (done) => {
-      const lobby = new Lobby(new Player('1234', 'test1234'));
-      expect(lobby.getHost().getUserName()).toBe('test1234');
+      const player1 = new Player('Player1', new Hand(), randomUUID());
+      const player2 = new Player('Player2', new Hand(), randomUUID());
+      const lobby = new Lobby(player1);
+      expect(lobby.getHost().getUserName()).toBe('Player1');
 
-      lobby.setHost(new Player('2345', 'test2345'));
-      expect(lobby.getHost().getUserName()).toBe('test2345');
+      lobby.setHost(player2);
+      expect(lobby.getHost().getUserName()).toBe('Player2');
       done();
     });
 
     test('should set a deck for the lobby', (done) => {
+      const player1 = new Player('Player1', new Hand(), randomUUID());
       const oldDeck = new Deck();
       const newDeck = new Deck();
 
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const lobby = new Lobby(player1);
       lobby.setDeck(oldDeck);
 
       expect(lobby.getDeck()).toBe(oldDeck);
@@ -448,13 +460,13 @@ describe('Entities', () => {
     });
 
     test('should add a user to the lobby and then remove it', (done) => {
-      const userId = randomUUID();
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const player1 = new Player('Player1', new Hand(), randomUUID());
+      const player2 = new Player('Player2', new Hand(), randomUUID());
+      const lobby = new Lobby(player1);
       expect(lobby.getPlayers().length).toBe(1);
-      const testUser = new Player(userId, 'test');
-      lobby.addUser(testUser);
+      lobby.addUser(player2);
       expect(lobby.getPlayers().length).toBe(2);
-      lobby.removeUser(userId);
+      lobby.removeUser(player1.id);
       expect(lobby.getPlayers().length).toBe(1);
       done();
     });

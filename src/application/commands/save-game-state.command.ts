@@ -1,12 +1,13 @@
-import { UUID } from 'crypto';
 import type { Server, Socket } from 'socket.io';
+import { logger } from '../../configurations/logger.config';
+import GameState from '../../domain/entities/GameState';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import { FileService } from '../services/file.service';
 import GameService from '../services/game.service';
 import { EntityValidator } from '../utils/entity.validator';
 
 export type SaveGameStatePayload = {
-  gameStateId: UUID;
+  gameState: GameState;
 };
 
 class SaveGameStateCommand extends Command {
@@ -20,12 +21,12 @@ class SaveGameStateCommand extends Command {
   }
 
   async execute(): Promise<void> {
-    const { gameStateId } = this.payload;
+    const { gameState } = this.payload;
 
-    const gameState = this.gameService.getGameState(gameStateId);
-    this.entityValidator.validateGameStateExists(gameState);
-
-    await FileService.storeGameState(gameState);
+    const res = await FileService.storeGameState(gameState);
+    if (res) {
+      logger.info('Saved GameState succesfully!');
+    }
 
     this.socket.emit('GameStateSaved');
   }

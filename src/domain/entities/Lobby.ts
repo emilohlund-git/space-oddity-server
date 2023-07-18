@@ -60,5 +60,9 @@ export class Lobby {
     return this.users;
   }
 
+  public setPlayers(players: Player[]): void {
+    this.users = players;
+  }
+
   // Add other lobby-related behavior and methods as needed
 }

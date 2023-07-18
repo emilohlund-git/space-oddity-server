@@ -34,87 +34,37 @@ import NotYourTurnException from '../../../src/application/exceptions/not-your-t
 import PlayerNotInLobbyException from '../../../src/application/exceptions/player-not-in-lobby.exception';
 import TableNotFoundException from '../../../src/application/exceptions/table-not-found.exception';
 import UserNotFoundException from '../../../src/application/exceptions/user-not-found.exception';
-import { CardService } from '../../../src/application/services/card.service';
-import { DeckService } from '../../../src/application/services/deck.service';
 import { FileService, GameStateJson } from '../../../src/application/services/file.service';
 import GameService from '../../../src/application/services/game.service';
-import { LobbyService } from '../../../src/application/services/lobby.service';
-import { TableService } from '../../../src/application/services/table.service';
-import { UserService } from '../../../src/application/services/user.service';
 import Card from '../../../src/domain/entities/Card';
 import Deck from '../../../src/domain/entities/Deck';
 import GameState, { GameStatus, Lights } from '../../../src/domain/entities/GameState';
+import Hand from '../../../src/domain/entities/Hand';
 import { Lobby } from '../../../src/domain/entities/Lobby';
 import Player from '../../../src/domain/entities/Player';
 import Table from '../../../src/domain/entities/Table';
 import TwistedCard, { SpecialEffect } from '../../../src/domain/entities/TwistedCard';
-import { CardRepository } from '../../../src/domain/repositories/card-repository.interface';
-import { DeckRepository } from '../../../src/domain/repositories/deck-repository.interface';
-import { LobbyRepository } from '../../../src/domain/repositories/lobby-repository.interface';
-import { TableRepository } from '../../../src/domain/repositories/table-repository.interface';
-import { UserRepository } from '../../../src/domain/repositories/user-repository.interface';
-import { InMemoryCardRepository } from '../../../src/infrastructure/repositories/in-memory-card.repository';
-import { InMemoryDeckRepository } from '../../../src/infrastructure/repositories/in-memory-deck.repository';
-import { InMemoryLobbyRepository } from '../../../src/infrastructure/repositories/in-memory-lobby.repository';
-import { InMemoryTableRepository } from '../../../src/infrastructure/repositories/in-memory-table.repository';
-import { InMemoryUserRepository } from '../../../src/infrastructure/repositories/in-memory-user.repository';
-import { getShuffledDeck } from '../../utils/test.utils';
+import { mockGameService } from '../../utils/game-service.mock';
 dotenv.config();
 
 jest.mock('fs/promises');
 
 describe('Commands', () => {
   let io: Server;
+  let testLobby: Lobby;
+  let testPlayers: Player[];
   let serverSocket: ServerSocket;
   let clientSocket: ClientSocket;
-  let cardRepository: CardRepository;
-  let cardService: CardService;
-  let userRepository: UserRepository;
-  let tableRepository: TableRepository;
-  let deckRepository: DeckRepository;
-  let userService: UserService;
-  let lobbyRepository: LobbyRepository;
-  let lobbyService: LobbyService;
-  let tableService: TableService;
-  let deckService: DeckService;
   let gameService: GameService;
   let gameState: GameState;
-  let testLobby: Lobby;
-  let testPlayer: Player;
-  let card1: Card;
-  let card2: Card;
   let httpServer: HttpServer;
 
   beforeEach(() => {
-    cardRepository = new InMemoryCardRepository();
-    userRepository = new InMemoryUserRepository();
-    lobbyRepository = new InMemoryLobbyRepository();
-    tableRepository = new InMemoryTableRepository();
-    deckRepository = new InMemoryDeckRepository();
-    cardService = new CardService(cardRepository);
-    userService = new UserService(userRepository);
-    lobbyService = new LobbyService(lobbyRepository);
-    tableService = new TableService(tableRepository);
-    deckService = new DeckService(deckRepository);
-    gameState = new GameState(new Table());
-    testPlayer = new Player('1234', 'testing');
-    card1 = new Card(0);
-    card2 = new Card(0);
-    testPlayer.addManyToHand([card1, card2]);
-    testLobby = new Lobby(testPlayer);
-    lobbyService.save(testLobby);
-    userService.save(testPlayer);
-    cardService.saveMany([card1, card2]);
-    gameState.setLobby(testLobby);
-    gameService = new GameService(
-      userService,
-      cardService,
-      tableService,
-      deckService,
-      lobbyService,
-    );
-
-    gameService.setGameState(gameState);
+    const { mockedLobby, mockedGameService, mockedGameState } = mockGameService();
+    gameState = mockedGameState;
+    gameService = mockedGameService;
+    testLobby = mockedLobby;
+    testPlayers = mockedLobby.getPlayers();
   });
 
   beforeAll((done) => {
@@ -154,31 +104,17 @@ describe('Commands', () => {
 
   describe('ChangeTurnCommand', () => {
     test('should change turn from player1 to player2', (done) => {
-      gameState.currentPlayerIndex = 0;
-
-      const player1 = new Player(serverSocket.id, 'test1');
-      const player2 = new Player('2', 'test2');
-
-      const lobby = new Lobby(player1);
-      lobby.addUser(player2);
-      lobby.setDeck(new Deck());
-
-      gameState.setLobby(lobby);
-
-      testLobby.addUser(player1);
-
-      gameState.startGame();
-
-      expect(gameState.getCurrentPlayer()).toBe(player1);
+      expect(gameState.getCurrentPlayer()).toBe(testPlayers[0]);
 
       const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
         gameStateId: gameState.id,
-        lobbyId: gameState.lobby!.id,
+        lobbyId: testLobby.id,
+        playerId: testPlayers[0].id,
       });
 
       changeTurnCommand.execute();
 
-      expect(gameState.getCurrentPlayer()).toBe(player2);
+      expect(gameState.getCurrentPlayer()).toBe(testPlayers[1]);
 
       done();
     });
@@ -188,6 +124,7 @@ describe('Commands', () => {
         const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
           gameStateId: randomUUID(),
           lobbyId: randomUUID(),
+          playerId: randomUUID(),
         });
 
         changeTurnCommand.execute();
@@ -196,16 +133,12 @@ describe('Commands', () => {
     });
 
     test('should throw LobbyNotFoundException exception', (done) => {
-      const lobby = new Lobby(new Player('1234', 'test'));
-      lobby.setDeck(getShuffledDeck());
-      gameState.setLobby(lobby);
-      gameState.startGame();
-
       expect(() => {
         gameState.setLobby(undefined);
         const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
           gameStateId: gameState.id,
           lobbyId: randomUUID(),
+          playerId: testPlayers[0].id,
         });
 
         changeTurnCommand.execute();
@@ -215,14 +148,10 @@ describe('Commands', () => {
 
     test('should throw NotYourTurnException exception', (done) => {
       expect(() => {
-        const lobby = new Lobby(new Player('1234', 'test'));
-        lobby.setDeck(getShuffledDeck());
-        gameState.setLobby(lobby);
-        gameState.startGame();
-
         const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
+          playerId: testPlayers[1].id,
         });
 
         changeTurnCommand.execute();
@@ -232,12 +161,12 @@ describe('Commands', () => {
 
     test('should throw NoPlayersInGameException exception', (done) => {
       expect(() => {
-        gameState.lobby = new Lobby(new Player('1234', 'test'));
-        gameState.lobby.removeUser('1234');
-
+        testLobby.removeUser(testPlayers[0].id);
+        testLobby.setPlayers([]);
         const changeTurnCommand = new ChangeTurnCommand(gameService, io, serverSocket, {
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby.id,
+          lobbyId: testLobby.id,
+          playerId: randomUUID(),
         });
 
         changeTurnCommand.execute();
@@ -249,29 +178,13 @@ describe('Commands', () => {
   describe('PlayedCardCommand', () => {
     test('should do nothing special', (done) => {
       expect(() => {
-        const player1 = new Player('abcd', 'player1');
-        const player2 = new Player('bcde', 'player2');
-
-        userService.save(player1);
-        userService.save(player2);
-
-        const card = new TwistedCard(0, SpecialEffect.SneakAPeak);
-
-        player1.addToHand(card);
-
-        cardService.save(card);
-
-        const table = new Table();
-
-        tableService.save(table);
-
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
-          cardId: card.id,
-          tableId: table.id,
-          userId: player1.id,
-          targetUserId: player2.id,
+          cardId: testPlayers[0].getHand().getCards()[0].id,
+          tableId: gameState.table.id,
+          playerId: testPlayers[0].id,
+          targetPlayerId: testPlayers[1].id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
         });
 
         playedCardCommand.execute();
@@ -281,29 +194,13 @@ describe('Commands', () => {
 
     test('should throw GameStateNotFoundException exception', (done) => {
       expect(() => {
-        const player1 = new Player('abcd', 'player1');
-        const player2 = new Player('bcde', 'player2');
-
-        userService.save(player1);
-        userService.save(player2);
-
-        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-        player1.addToHand(card);
-
-        cardService.save(card);
-
-        const table = new Table();
-
-        tableService.save(table);
-
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
-          cardId: card.id,
-          tableId: table.id,
-          userId: player1.id,
-          targetUserId: player2.id,
+          cardId: testPlayers[0].getHand().getCards()[0].id,
+          tableId: gameState.table.id,
+          playerId: testPlayers[0].id,
+          targetPlayerId: testPlayers[1].id,
           gameStateId: randomUUID(),
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
         });
 
         playedCardCommand.execute();
@@ -312,29 +209,17 @@ describe('Commands', () => {
     });
 
     test('should switch the GameState light from red to blue then back to red', (done) => {
-      const player1 = new Player('abcd', 'player1');
-      const player2 = new Player('bcde', 'player2');
-
-      userService.save(player1);
-      userService.save(player2);
-
-      const card = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-      player1.addToHand(card);
-
-      cardService.save(card);
-
-      const table = new Table();
-
-      tableService.save(table);
+      const card = new TwistedCard(24, SpecialEffect.SwitchLight);
+      gameService.getCardService().save(card);
+      testPlayers[0].addToHand(card);
 
       const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
         cardId: card.id,
-        tableId: table.id,
-        userId: player1.id,
-        targetUserId: player2.id,
+        tableId: gameState.table.id,
+        playerId: testPlayers[0].id,
+        targetPlayerId: testPlayers[1].id,
         gameStateId: gameState.id,
-        lobbyId: gameState.lobby!.id,
+        lobbyId: testLobby.id,
       });
 
       expect(gameState.light).toBe(Lights.BLUE);
@@ -343,19 +228,17 @@ describe('Commands', () => {
 
       expect(gameState.light).toBe(Lights.RED);
 
-      card2 = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-      player1.addToHand(card2);
-
-      cardService.save(card2);
+      const card2 = new TwistedCard(0, SpecialEffect.SwitchLight);
+      gameService.getCardService().save(card2);
+      testPlayers[0].addToHand(card2);
 
       const playedCardCommand2 = new PlayedCardCommand(gameService, io, serverSocket, {
         cardId: card2.id,
-        tableId: table.id,
-        userId: player1.id,
-        targetUserId: player2.id,
+        tableId: gameState.table.id,
+        playerId: testPlayers[0].id,
+        targetPlayerId: testPlayers[1].id,
         gameStateId: gameState.id,
-        lobbyId: gameState.lobby!.id,
+        lobbyId: testLobby.id,
       });
 
       playedCardCommand2.execute();
@@ -366,66 +249,39 @@ describe('Commands', () => {
     });
 
     test('should swap the two players hands', (done) => {
-      const player1 = new Player('abcd', 'player1');
-      const player2 = new Player('bcde', 'player2');
+      const card1 = new TwistedCard(0, SpecialEffect.SwapHand);
+      const card2 = new TwistedCard(0, SpecialEffect.SneakAPeak);
+      gameService.getCardService().saveMany([card1, card2]);
 
-      userService.save(player1);
-      userService.save(player2);
-
-      card1 = new TwistedCard(0, SpecialEffect.SwapHand);
-      card2 = new TwistedCard(0, SpecialEffect.SneakAPeak);
-
-      player1.addToHand(card1);
-      player2.addToHand(card2);
-
-      cardService.save(card1);
-
-      const table = new Table();
-
-      tableService.save(table);
+      testPlayers[0].addManyToHand([card1, card2]);
 
       const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
         cardId: card1.id,
-        tableId: table.id,
-        userId: player1.id,
-        targetUserId: player2.id,
+        tableId: gameState.table.id,
+        playerId: testPlayers[0].id,
+        targetPlayerId: testPlayers[1].id,
         gameStateId: gameState.id,
-        lobbyId: gameState.lobby!.id,
+        lobbyId: testLobby.id,
       });
 
       playedCardCommand.execute();
 
-      expect(player2.getHand().getCards()[0]).toBeUndefined();
-      expect(player1.getHand().getCards()[0]).toBe(card2);
+      expect(testPlayers[0].getHand().getCards().includes(card1)).toBe(false);
+      expect(testPlayers[0].getHand().getCards().includes(card2)).toBe(false);
+      expect(testPlayers[1].getHand().getCards().includes(card2)).toBe(true);
 
       done();
     });
 
     test('should throw UserNotFoundException exception', (done) => {
-      const player1 = new Player('abcd', 'player1');
-      const player2 = new Player('bcde', 'player2');
-
-      userService.save(player1);
-      userService.save(player2);
-
-      const card = new Card(0);
-
-      player1.addToHand(card);
-
-      cardService.save(card);
-
-      const table = new Table();
-
-      tableService.save(table);
-
       expect(() => {
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
-          cardId: card.id,
-          tableId: table.id,
-          userId: player1.id,
-          targetUserId: 'eeeee1111',
+          cardId: testPlayers[0].getHand().getCards()[0].id,
+          tableId: gameState.table.id,
+          playerId: testPlayers[0].id,
+          targetPlayerId: randomUUID(),
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
         });
 
         playedCardCommand.execute();
@@ -434,26 +290,14 @@ describe('Commands', () => {
     });
 
     test('should throw TableNotFoundException exception', (done) => {
-      const player1 = new Player('abcd', 'player1');
-      const player2 = new Player('bcde', 'player2');
-
-      userService.save(player1);
-      userService.save(player2);
-
-      const card = new Card(0);
-
-      player1.addToHand(card);
-
-      cardService.save(card);
-
       expect(() => {
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
-          cardId: card.id,
+          cardId: testPlayers[0].getHand().getCards()[0].id,
           tableId: randomUUID(),
-          userId: player1.id,
-          targetUserId: player2.id,
+          playerId: testPlayers[0].id,
+          targetPlayerId: testPlayers[1].id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
         });
 
         playedCardCommand.execute();
@@ -462,24 +306,17 @@ describe('Commands', () => {
     });
 
     test('should throw CardNotInHandException exception', (done) => {
-      const player1 = new Player('abcd', 'player1');
-      const player2 = new Player('bcde', 'player2');
-
-      userService.save(player1);
-      userService.save(player2);
-
-      const card = new Card(0);
-
-      cardService.save(card);
-
       expect(() => {
+        const card = new Card(0);
+        gameService.getCardService().save(card);
+
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
           cardId: card.id,
           tableId: randomUUID(),
-          userId: player1.id,
-          targetUserId: player2.id,
+          playerId: testPlayers[0].id,
+          targetPlayerId: testPlayers[1].id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
         });
 
         playedCardCommand.execute();
@@ -488,20 +325,14 @@ describe('Commands', () => {
     });
 
     test('should throw CardNotFoundException exception', (done) => {
-      const player1 = new Player('abcd', 'player1');
-      const player2 = new Player('bcde', 'player2');
-
-      userService.save(player1);
-      userService.save(player2);
-
       expect(() => {
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
           cardId: randomUUID(),
           tableId: randomUUID(),
-          userId: player1.id,
-          targetUserId: player2.id,
+          playerId: testPlayers[0].id,
+          targetPlayerId: testPlayers[1].id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
         });
 
         playedCardCommand.execute();
@@ -514,10 +345,10 @@ describe('Commands', () => {
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
           cardId: randomUUID(),
           tableId: randomUUID(),
-          userId: 'eeeee111',
-          targetUserId: 'eeeee111',
+          playerId: randomUUID(),
+          targetPlayerId: randomUUID(),
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
         });
 
         playedCardCommand.execute();
@@ -530,10 +361,10 @@ describe('Commands', () => {
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
           cardId: randomUUID(),
           tableId: 'not-uuid' as UUID,
-          userId: 'abcd',
-          targetUserId: 'abcd',
+          playerId: randomUUID(),
+          targetPlayerId: randomUUID(),
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
         });
 
         playedCardCommand.execute();
@@ -544,11 +375,8 @@ describe('Commands', () => {
 
   describe('CreateLobbyCommand', () => {
     test('should emit LobbyCreated event when valid payload is provided', (done) => {
-      const testUser = new Player(clientSocket.id, 'test');
-      userService.save(testUser);
-
       const createLobbyCommand = new CreateLobbyCommand(gameService, io, serverSocket, {
-        gameStateId: gameState.id,
+        playerId: testPlayers[0].id,
       });
 
       clientSocket.on('LobbyCreated', (lobby: Lobby) => {
@@ -566,7 +394,9 @@ describe('Commands', () => {
       };
 
       expect(() => {
-        const createLobbyCommand = new CreateLobbyCommand(gameService, io, mockSocket, {});
+        const createLobbyCommand = new CreateLobbyCommand(gameService, io, mockSocket, {
+          playerId: randomUUID(),
+        });
 
         createLobbyCommand.execute();
       }).toThrow(UserNotFoundException);
@@ -574,17 +404,15 @@ describe('Commands', () => {
   });
 
   describe('JoinLobbyCommand', () => {
-    beforeEach(() => {
-      const newPlayer = new Player(serverSocket.id, 'test2');
-      gameService.getUserService().save(newPlayer);
-      testLobby.addUser(newPlayer);
-    });
-
     test('should emit UserJoinedLobby event when valid payload is provided', (done) => {
       expect(testLobby.getPlayers().length).toBe(2);
 
+      const player3 = new Player('Player3', new Hand(), randomUUID());
+      gameService.getUserService().save(player3);
+
       const joinLobbyCommand = new JoinLobbyCommand(gameService, io, serverSocket, {
         lobbyId: testLobby.id,
+        playerId: player3.id,
       });
 
       clientSocket.on('UserJoinedLobby', (response: Lobby) => {
@@ -602,11 +430,13 @@ describe('Commands', () => {
     test('should throw UserNotFoundException when user is not found', () => {
       const mockSocket: any = {
         id: 'mock-socket-id',
+        join: () => { },
       };
 
       expect(() => {
         const joinLobbyCommand = new JoinLobbyCommand(gameService, io, mockSocket, {
           lobbyId: testLobby.id,
+          playerId: randomUUID(),
         });
 
         joinLobbyCommand.execute();
@@ -617,6 +447,7 @@ describe('Commands', () => {
       expect(() => {
         const joinLobbyCommand = new JoinLobbyCommand(gameService, io, serverSocket, {
           lobbyId: randomUUID(),
+          playerId: testPlayers[0].id,
         });
 
         joinLobbyCommand.execute();
@@ -628,6 +459,7 @@ describe('Commands', () => {
       expect(() => {
         const joinLobbyCommand = new JoinLobbyCommand(gameService, io, serverSocket, {
           lobbyId: 'non-uuid-id' as UUID,
+          playerId: testPlayers[0].id,
         });
 
         joinLobbyCommand.execute();
@@ -637,29 +469,26 @@ describe('Commands', () => {
   });
 
   describe('MatchCardsCommand', () => {
-    beforeEach(() => {
-      const newPlayer = new Player(serverSocket.id, 'test2');
-      gameService.getUserService().save(newPlayer);
-      testLobby.addUser(newPlayer);
-    });
-
     test('should match two of the players card and dispose them', (done) => {
-      expect(testPlayer.getHand().getCards().length).toBe(2);
-      expect(testPlayer.getHand().getCards().includes(card1)).toBe(true);
-      expect(testPlayer.getHand().getCards().includes(card2)).toBe(true);
+      const card1 = new Card(2);
+      const card2 = new Card(2);
+      gameService.getCardService().saveMany([card1, card2]);
+      testPlayers[0].addManyToHand([card1, card2]);
+
+      const testPlayer0HandSize = testPlayers[0].getHand().getCards().length;
 
       const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
         card1Id: card1.id,
         card2Id: card2.id,
         gameStateId: gameState.id,
-        lobbyId: gameState.lobby!.id,
-        userId: testPlayer.id,
+        lobbyId: testLobby.id,
+        playerId: testPlayers[0].id,
       });
       matchCardsCommand.execute();
 
-      expect(testPlayer.getHand().getCards().length).toBe(0);
-      expect(testPlayer.getHand().getCards().includes(card1)).toBe(false);
-      expect(testPlayer.getHand().getCards().includes(card2)).toBe(false);
+      expect(testPlayers[0].getHand().getCards().length).toBe(testPlayer0HandSize - 2);
+      expect(testPlayers[0].getHand().getCards().includes(card1)).toBe(false);
+      expect(testPlayers[0].getHand().getCards().includes(card2)).toBe(false);
       expect(gameState.table.getDisposedCards().length).toBe(2);
       expect(gameState.table.getDisposedCards().includes(card1)).toBe(true);
       expect(gameState.table.getDisposedCards().includes(card2)).toBe(true);
@@ -667,15 +496,18 @@ describe('Commands', () => {
     });
 
     test('should throw CardNotInHandException exception', (done) => {
-      testPlayer.removeFromHand(card1);
+      const card1 = new Card(2);
+      const card2 = new Card(2);
+      gameService.getCardService().saveMany([card1, card2]);
+      testPlayers[0].addToHand(card2);
 
       expect(() => {
         const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
           card1Id: card1.id,
           card2Id: card2.id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userId: serverSocket.id,
+          lobbyId: testLobby.id,
+          playerId: testPlayers[0].id,
         });
         matchCardsCommand.execute();
       }).toThrow(CardNotInHandException);
@@ -684,16 +516,18 @@ describe('Commands', () => {
     });
 
     test('should throw CardNotInHandException exception', (done) => {
-      testPlayer.addToHand(card1);
-      testPlayer.removeFromHand(card2);
+      const card1 = new Card(2);
+      const card2 = new Card(2);
+      gameService.getCardService().saveMany([card1, card2]);
+      testPlayers[0].addToHand(card1);
 
       expect(() => {
         const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
           card1Id: card1.id,
           card2Id: card2.id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userId: serverSocket.id,
+          lobbyId: testLobby.id,
+          playerId: testPlayers[0].id,
         });
         matchCardsCommand.execute();
       }).toThrow(CardNotInHandException);
@@ -702,15 +536,18 @@ describe('Commands', () => {
     });
 
     test('should throw CardNotFoundException exception', (done) => {
-      gameService.getCardService().removeMany([card1]);
+      const card1 = new Card(2);
+      const card2 = new Card(2);
+      gameService.getCardService().save(card1);
+      testPlayers[0].addToHand(card1);
 
       expect(() => {
         const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
           card1Id: card1.id,
           card2Id: card2.id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userId: serverSocket.id,
+          lobbyId: testLobby.id,
+          playerId: testPlayers[0].id,
         });
         matchCardsCommand.execute();
       }).toThrow(CardNotFoundException);
@@ -724,8 +561,8 @@ describe('Commands', () => {
           card1Id: randomUUID(),
           card2Id: randomUUID(),
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userId: 'non-existing-user',
+          lobbyId: testLobby.id,
+          playerId: randomUUID(),
         });
         matchCardsCommand.execute();
       }).toThrow(UserNotFoundException);
@@ -739,7 +576,7 @@ describe('Commands', () => {
           card2Id: randomUUID(),
           gameStateId: gameState.id,
           lobbyId: randomUUID(),
-          userId: serverSocket.id,
+          playerId: testPlayers[0].id,
         });
         matchCardsCommand.execute();
       }).toThrow(LobbyNotFoundException);
@@ -752,8 +589,8 @@ describe('Commands', () => {
           card1Id: randomUUID(),
           card2Id: randomUUID(),
           gameStateId: randomUUID(),
-          lobbyId: gameState.lobby!.id,
-          userId: serverSocket.id,
+          lobbyId: testLobby.id,
+          playerId: testPlayers[0].id,
         });
         matchCardsCommand.execute();
       }).toThrow(GameStateNotFoundException);
@@ -766,8 +603,8 @@ describe('Commands', () => {
           card1Id: '1234' as UUID,
           card2Id: randomUUID(),
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userId: serverSocket.id,
+          lobbyId: testLobby.id,
+          playerId: testPlayers[0].id,
         });
         matchCardsCommand.execute();
       }).toThrow(InvalidPayloadException);
@@ -777,119 +614,67 @@ describe('Commands', () => {
 
   describe('PickedCardCommand', () => {
     test('should draw a card from the deck instead of from the player', (done) => {
-      const player1 = new Player('abcd', 'player1');
-      const player2 = new Player('bcde', 'player2');
-
-      userService.save(player1);
-      userService.save(player2);
-
-      const card = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-      player1.addToHand(card);
-
-      cardService.save(card);
-
-      const table = new Table();
-
-      tableService.save(table);
-
       const testDeck = new Deck();
-      const testCard = new Card(0);
+      const testCard = new Card(3);
 
-      cardService.save(testCard);
+      gameService.getCardService().save(testCard);
 
       testDeck.addCard(testCard);
 
       testLobby.setDeck(testDeck);
 
-      testLobby.addUser(player1);
-      testLobby.addUser(player2);
-
-      gameState.setLobby(testLobby);
-
-      expect(player1.getHand().getCards().includes(testCard)).toBe(false);
-      expect(player2.getHand().getCards().includes(testCard)).toBe(false);
+      expect(testPlayers[0].getHand().getCards().includes(testCard)).toBe(false);
+      expect(testPlayers[0].getHand().getCards().includes(testCard)).toBe(false);
       expect(testDeck.getCards().includes(testCard)).toBe(true);
 
       const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
         cardId: testCard.id,
         gameStateId: gameState.id,
-        lobbyId: gameState.lobby!.id,
-        userNewId: player1.id,
-        userPreviousId: player2.id,
+        lobbyId: testLobby.id,
+        playerNewId: testPlayers[0].id,
+        playerPreviousId: testPlayers[1].id,
         fromOpponent: false,
       });
 
       pickedCardCommand.execute();
 
-      expect(player1.getHand().getCards().includes(testCard)).toBe(true);
-      expect(player2.getHand().getCards().includes(testCard)).toBe(false);
+      expect(testPlayers[0].getHand().getCards().includes(testCard)).toBe(true);
+      expect(testPlayers[1].getHand().getCards().includes(testCard)).toBe(false);
       expect(testDeck.getCards().includes(testCard)).toBe(false);
       done();
     });
 
     test('should throw DeckNotFoundException exception', (done) => {
       expect(() => {
-        const player1 = new Player('abcd', 'player1');
-        const player2 = new Player('bcde', 'player2');
+        const card = new Card(0);
+        gameService.getCardService().save(card);
+        testPlayers[1].addToHand(card);
 
-        userService.save(player1);
-        userService.save(player2);
-
-        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-        player1.addToHand(card);
-
-        cardService.save(card);
-
-        const table = new Table();
-
-        tableService.save(table);
-
-        gameState.setLobby(testLobby);
+        testLobby.setDeck(undefined);
 
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
           cardId: card.id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userNewId: player1.id,
-          userPreviousId: player2.id,
+          lobbyId: testLobby.id,
+          playerNewId: testPlayers[0].id,
+          playerPreviousId: testPlayers[1].id,
           fromOpponent: false,
         });
 
         pickedCardCommand.execute();
       }).toThrow(DeckNotFoundException);
+
       done();
     });
 
     test('should throw LobbyNotFoundException exception', (done) => {
       expect(() => {
-        const player1 = new Player('abcd', 'player1');
-        const player2 = new Player('bcde', 'player2');
-
-        userService.save(player1);
-        userService.save(player2);
-
-        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-        player1.addToHand(card);
-
-        cardService.save(card);
-
-        const table = new Table();
-
-        tableService.save(table);
-
-        testLobby.setDeck(new Deck());
-
-        gameState.setLobby(undefined);
-
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
-          cardId: card.id,
+          cardId: testPlayers[0].getHand().getCards()[0].id,
           gameStateId: gameState.id,
           lobbyId: randomUUID(),
-          userNewId: player1.id,
-          userPreviousId: player2.id,
+          playerNewId: testPlayers[0].id,
+          playerPreviousId: testPlayers[1].id,
           fromOpponent: false,
         });
 
@@ -900,80 +685,36 @@ describe('Commands', () => {
 
     test('should throw CardNotFoundException exception', (done) => {
       expect(() => {
-        const player1 = new Player('abcd', 'player1');
-        const player2 = new Player('bcde', 'player2');
-
-        userService.save(player1);
-        userService.save(player2);
-
-        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-        player1.addToHand(card);
-
-        cardService.save(card);
-
-        const table = new Table();
-
-        tableService.save(table);
-
-        const mockDeck = {
-          hasCards: jest.fn().mockReturnValue(true),
-          drawCard: jest.fn(),
-          distributeCardsToPlayers: jest.fn(),
-        } as any;
-
-        testLobby.setDeck(mockDeck);
-        testLobby.addUser(player1);
-        testLobby.addUser(player2);
-
-        player2.addToHand(card);
-
-        gameState.startGame();
-
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
-          cardId: card.id,
+          cardId: randomUUID(),
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userNewId: player1.id,
-          userPreviousId: player2.id,
+          lobbyId: testLobby.id,
+          playerNewId: testPlayers[0].id,
+          playerPreviousId: testPlayers[1].id,
           fromOpponent: false,
         });
 
-        mockDeck.hasCards.mockReturnValueOnce(true);
-
         pickedCardCommand.execute();
-
-        expect(mockDeck.hasCards).toHaveBeenCalled();
       }).toThrow(CardNotFoundException);
       done();
     });
 
     test('should throw PlayerNotInLobbyException exception', (done) => {
       expect(() => {
-        const player1 = new Player('abcd', 'player1');
-        const player2 = new Player('bcde', 'player2');
+        const player3 = new Player('Player3', new Hand(), randomUUID());
+        gameService.getUserService().save(player3);
 
-        userService.save(player1);
-        userService.save(player2);
+        const card = new Card(0);
+        gameService.getCardService().save(card);
 
-        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-        player1.addToHand(card);
-
-        cardService.save(card);
-
-        const table = new Table();
-
-        tableService.save(table);
-
-        testLobby.setDeck(new Deck());
+        player3.addToHand(card);
 
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
           cardId: card.id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userNewId: player1.id,
-          userPreviousId: player2.id,
+          lobbyId: testLobby.id,
+          playerNewId: player3.id,
+          playerPreviousId: testPlayers[0].id,
           fromOpponent: false,
         });
 
@@ -983,77 +724,41 @@ describe('Commands', () => {
     });
 
     test('player1 should take a card from player2s hand', (done) => {
-      const player1 = new Player('abcd', 'player1');
-      const player2 = new Player('bcde', 'player2');
-
-      userService.save(player1);
-      userService.save(player2);
-
       const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+      gameService.getCardService().save(card);
 
-      player1.addToHand(card);
+      testPlayers[0].addToHand(card);
 
-      cardService.save(card);
-
-      const table = new Table();
-
-      tableService.save(table);
-
-      const lobby = new Lobby(player1);
-
-      lobby.addUser(player2);
-
-      const deck = new Deck();
-
-      lobby.setDeck(deck);
-
-      gameState.setLobby(lobby);
-
-      gameState.startGame();
-
-      expect(player1.getHand().getCards().includes(card)).toBe(true);
-      expect(player2.getHand().getCards().includes(card)).toBe(false);
+      expect(testPlayers[0].getHand().getCards().includes(card)).toBe(true);
+      expect(testPlayers[1].getHand().getCards().includes(card)).toBe(false);
 
       const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
         cardId: card.id,
         gameStateId: gameState.id,
-        lobbyId: gameState.lobby!.id,
-        userNewId: player2.id,
-        userPreviousId: player1.id,
-        fromOpponent: false,
+        lobbyId: testLobby.id,
+        playerNewId: testPlayers[1].id,
+        playerPreviousId: testPlayers[0].id,
+        fromOpponent: true,
       });
       pickedCardCommand.execute();
 
-      expect(player1.getHand().getCards().includes(card)).toBe(false);
-      expect(player2.getHand().getCards().includes(card)).toBe(true);
+      expect(testPlayers[0].getHand().getCards().includes(card)).toBe(false);
+      expect(testPlayers[1].getHand().getCards().includes(card)).toBe(true);
 
       done();
     });
 
     test('should throw GameStateNotFoundException exception', (done) => {
+      const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+      gameService.getCardService().save(card);
+
       expect(() => {
-        const player1 = new Player('abcd', 'player1');
-        const player2 = new Player('bcde', 'player2');
-
-        userService.save(player1);
-        userService.save(player2);
-
-        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
-
-        player1.addToHand(card);
-
-        cardService.save(card);
-
-        const table = new Table();
-
-        tableService.save(table);
-
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
           cardId: card.id,
           gameStateId: randomUUID(),
           lobbyId: randomUUID(),
-          userNewId: randomUUID(),
-          userPreviousId: randomUUID(),
+          playerNewId: randomUUID(),
+          playerPreviousId: randomUUID(),
           fromOpponent: false,
         });
 
@@ -1063,26 +768,16 @@ describe('Commands', () => {
     });
 
     test('should throw UserNotFoundException exception', (done) => {
-      testLobby.setDeck(new Deck());
-      const testCard = new Card(0);
-      cardService.save(testCard);
-
-      const previousId = randomUUID();
-      const newId = randomUUID();
-
-      const previousOwner = new Player(previousId, 'test-1');
-      const newOwner = new Player(newId, 'test-2');
-
-      userService.save(previousOwner);
-      userService.save(newOwner);
+      const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+      gameService.getCardService().save(card);
 
       expect(() => {
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
-          cardId: testCard.id,
-          userPreviousId: previousId,
-          userNewId: 'abcd1234',
+          cardId: card.id,
+          playerPreviousId: testPlayers[0].id,
+          playerNewId: randomUUID(),
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
           fromOpponent: false,
         });
 
@@ -1091,11 +786,11 @@ describe('Commands', () => {
 
       expect(() => {
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
-          cardId: testCard.id,
-          userPreviousId: 'abcd1234',
-          userNewId: newId,
+          cardId: card.id,
+          playerPreviousId: randomUUID(),
+          playerNewId: testPlayers[0].id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
           fromOpponent: false,
         });
 
@@ -1105,32 +800,18 @@ describe('Commands', () => {
       done();
     });
 
-    test('should throw CardNotInHandException when providing non-existing cardId', (done) => {
+    test('should throw CardNotInHandException exception', (done) => {
       expect(() => {
-        testLobby.setDeck(new Deck());
-
-        const testCard = new Card(0);
-        cardService.save(testCard);
-
-        const previousOwnerId = randomUUID();
-        const newOwnerId = randomUUID();
-
-        const previousOwner = new Player(previousOwnerId, 'test-1');
-        const newOwner = new Player(newOwnerId, 'test-2');
-
-        userService.save(previousOwner);
-        userService.save(newOwner);
-
-        testLobby.addUser(previousOwner);
-        testLobby.addUser(newOwner);
+        const card = new TwistedCard(0, SpecialEffect.SwitchLight);
+        gameService.getCardService().save(card);
 
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
-          cardId: testCard.id,
-          userPreviousId: previousOwnerId,
-          userNewId: newOwnerId,
+          cardId: card.id,
+          playerPreviousId: testPlayers[0].id,
+          playerNewId: testPlayers[1].id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          fromOpponent: false,
+          lobbyId: testLobby.id,
+          fromOpponent: true,
         });
 
         pickedCardCommand.execute();
@@ -1140,26 +821,12 @@ describe('Commands', () => {
 
     test('should throw CardNotFoundException when providing non-existing cardId', (done) => {
       expect(() => {
-        testLobby.setDeck(new Deck());
-
-        const previousOwnerId = randomUUID();
-        const newOwnerId = randomUUID();
-
-        const previousOwner = new Player(previousOwnerId, 'test-1');
-        const newOwner = new Player(newOwnerId, 'test-2');
-
-        userService.save(previousOwner);
-        userService.save(newOwner);
-
-        testLobby.addUser(previousOwner);
-        testLobby.addUser(newOwner);
-
         const pickedCardCommand = new PickedCardCommand(gameService, io, serverSocket, {
           cardId: randomUUID(),
-          userPreviousId: previousOwnerId,
-          userNewId: newOwnerId,
+          playerPreviousId: testPlayers[0].id,
+          playerNewId: testPlayers[1].id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
+          lobbyId: testLobby.id,
           fromOpponent: false,
         });
 
@@ -1170,12 +837,6 @@ describe('Commands', () => {
   });
 
   describe('LeaveLobbyCommand', () => {
-    beforeEach(() => {
-      const newPlayer = new Player(serverSocket.id, 'test2');
-      gameService.getUserService().save(newPlayer);
-      testLobby.addUser(newPlayer);
-    });
-
     test('should remove a Player from the lobby and then delete the lobby', (done) => {
       const mockSocket = {
         id: '1',
@@ -1187,52 +848,28 @@ describe('Commands', () => {
         },
       } as any;
 
-      userService.remove(serverSocket.id);
+      const player1 = testPlayers[0];
+      const player2 = testPlayers[1];
 
-      const player = new Player('1', 'test');
-      gameService.getUserService().save(player);
-
-      const lobby = new Lobby(player);
-      lobbyService.save(lobby);
-
-      expect(lobby.getPlayers().includes(player)).toBe(true);
-
-      const leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, mockSocket, {
-        lobbyId: lobby.id,
-      });
-
-      leaveLobbyCommand.execute();
-
-      expect(lobby.getPlayers().includes(player)).toBe(false);
-      expect(lobbyService.findById(lobby.id)).toBeUndefined();
-
-      done();
-    });
-
-    test('should remove a Player from the lobby', (done) => {
-      const mockSocket = {
-        id: '1',
-        leave: () => { },
-        broadcast: {
-          to: () => ({
-            emit: () => { },
-          }),
-        },
-      } as any;
-
-      const player = new Player('1', 'test');
-      gameService.getUserService().save(player);
-      testLobby.addUser(player);
-
-      expect(testLobby.getPlayers().includes(player)).toBe(true);
-
-      const leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, mockSocket, {
+      let leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, mockSocket, {
         lobbyId: testLobby.id,
+        playerId: player1.id,
       });
 
       leaveLobbyCommand.execute();
 
-      expect(testLobby.getPlayers().includes(player)).toBe(false);
+      expect(testLobby.getPlayers().includes(player1)).toBe(false);
+      expect(gameService.getLobbyService().findById(testLobby.id)).toBeDefined();
+
+      leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, mockSocket, {
+        lobbyId: testLobby.id,
+        playerId: player2.id,
+      });
+
+      leaveLobbyCommand.execute();
+
+      expect(testLobby.getPlayers().includes(player2)).toBe(false);
+      expect(gameService.getLobbyService().findById(testLobby.id)).toBeUndefined();
 
       done();
     });
@@ -1241,6 +878,7 @@ describe('Commands', () => {
       expect(() => {
         const leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, serverSocket, {
           lobbyId: 'non-uuid-id' as UUID,
+          playerId: randomUUID(),
         });
 
         leaveLobbyCommand.execute();
@@ -1256,6 +894,7 @@ describe('Commands', () => {
       expect(() => {
         const leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, mockSocket, {
           lobbyId: randomUUID(),
+          playerId: randomUUID(),
         });
 
         leaveLobbyCommand.execute();
@@ -1266,6 +905,7 @@ describe('Commands', () => {
       expect(() => {
         const leaveLobbyCommand = new LeaveLobbyCommand(gameService, io, serverSocket, {
           lobbyId: randomUUID(),
+          playerId: testPlayers[0].id,
         });
 
         leaveLobbyCommand.execute();
@@ -1275,27 +915,17 @@ describe('Commands', () => {
   });
 
   describe('UserConnectCommand', () => {
-    beforeEach(() => {
-      const newPlayer = new Player(serverSocket.id, 'test2');
-      gameService.getUserService().save(newPlayer);
-      testLobby.addUser(newPlayer);
-    });
-
     test('should throw FailedUserConnectionException when user creation fails', () => {
-      gameService.getUserService().save(new Player(serverSocket.id, 'test'));
-
       const userConnectCommand = new UserConnectCommand(gameService, io, serverSocket, {
-        username: 'test1234',
+        username: testPlayers[0].username,
       });
 
       expect(() => userConnectCommand.execute()).toThrow(FailedUserConnectionException);
     });
 
     test('should emit UserConnected event when valid payload is provided', (done) => {
-      userRepository.clear();
-
       const userConnectCommand = new UserConnectCommand(gameService, io, serverSocket, {
-        username: 'test',
+        username: 'Player1',
       });
 
       clientSocket.on('UserConnected', (lobby) => {
@@ -1305,17 +935,6 @@ describe('Commands', () => {
       });
 
       userConnectCommand.execute();
-    });
-
-    test('should throw FailedUserConnectionException when trying to connect with existing username', (done) => {
-      expect(() => {
-        const userConnectCommand = new UserConnectCommand(gameService, io, serverSocket, {
-          username: 'test',
-        });
-
-        userConnectCommand.execute();
-      }).toThrow(FailedUserConnectionException);
-      done();
     });
 
     test('should throw InvalidPayloadException when passing an empty username string', (done) => {
@@ -1331,18 +950,12 @@ describe('Commands', () => {
   });
 
   describe('SendMessageCommand', () => {
-    beforeEach(() => {
-      const newPlayer = new Player(serverSocket.id, 'test2');
-      gameService.getUserService().save(newPlayer);
-      testLobby.addUser(newPlayer);
-    });
-
     test('should throw UserNotFoundException exception', (done) => {
       expect(() => {
         const sendMessageCommand = new SendMessageCommand(gameService, io, serverSocket, {
           lobbyId: randomUUID(),
           message: '1234',
-          userId: randomUUID(),
+          playerId: randomUUID(),
         });
 
         sendMessageCommand.execute();
@@ -1355,7 +968,7 @@ describe('Commands', () => {
         const sendMessageCommand = new SendMessageCommand(gameService, io, serverSocket, {
           lobbyId: randomUUID(),
           message: '1234',
-          userId: serverSocket.id,
+          playerId: testPlayers[0].id,
         });
 
         sendMessageCommand.execute();
@@ -1368,7 +981,7 @@ describe('Commands', () => {
         const sendMessageCommand = new SendMessageCommand(gameService, io, serverSocket, {
           lobbyId: 'non-uuid-id' as UUID,
           message: '1234',
-          userId: 'non-uuid-id',
+          playerId: testPlayers[0].id,
         });
 
         sendMessageCommand.execute();
@@ -1381,15 +994,16 @@ describe('Commands', () => {
     test('should discard a card', (done) => {
       expect(gameState.table.getDisposedCards()).toHaveLength(0);
 
-      const player = new Player(serverSocket.id, 'test');
-      player.addToHand(card1);
-      testLobby.addUser(player);
+      const card = new Card(0);
+      gameService.getCardService().save(card);
+
+      testPlayers[0].addToHand(card);
 
       const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
-        cardId: card1.id,
+        cardId: card.id,
         gameStateId: gameState.id,
-        lobbyId: gameState.lobby!.id,
-        userId: serverSocket.id,
+        lobbyId: testLobby.id,
+        playerId: testPlayers[0].id,
       });
 
       cardDiscardedCommand.execute();
@@ -1402,10 +1016,10 @@ describe('Commands', () => {
     test('should throw UserNotFoundException exception', (done) => {
       expect(() => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
-          cardId: card1.id,
+          cardId: randomUUID(),
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
-          userId: randomUUID(),
+          playerId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
@@ -1414,18 +1028,14 @@ describe('Commands', () => {
     });
 
     test('should throw NoPlayersInGameException exception', (done) => {
-      const card = new Card(0);
-      cardService.save(card);
-
-      gameState.setLobby(new Lobby(new Player('1', '1')));
-      gameState.lobby!.removeUser('1');
+      testLobby.setPlayers([]);
 
       expect(() => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
-          cardId: card.id,
+          cardId: randomUUID(),
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userId: randomUUID(),
+          lobbyId: testLobby.id,
+          playerId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
@@ -1434,7 +1044,6 @@ describe('Commands', () => {
     });
 
     test('should throw CardNotInHandException exception', (done) => {
-      gameState.lobby!.addUser(new Player('2345', 'testing-2'));
       const card = new Card(0);
       gameService.getCardService().save(card);
 
@@ -1442,8 +1051,8 @@ describe('Commands', () => {
         const cardDiscardedCommand = new CardDiscardedCommand(gameService, io, serverSocket, {
           cardId: card.id,
           gameStateId: gameState.id,
-          lobbyId: gameState.lobby!.id,
-          userId: '2345',
+          lobbyId: testLobby.id,
+          playerId: testPlayers[0].id,
         });
 
         cardDiscardedCommand.execute();
@@ -1453,7 +1062,7 @@ describe('Commands', () => {
 
     test('should throw LobbyNotFoundException exception', (done) => {
       const card = new Card(0);
-      cardService.save(card);
+      gameService.getCardService().save(card);
 
       expect(() => {
         gameState.setLobby(undefined);
@@ -1461,7 +1070,7 @@ describe('Commands', () => {
           cardId: card.id,
           gameStateId: gameState.id,
           lobbyId: randomUUID(),
-          userId: randomUUID(),
+          playerId: testPlayers[0].id,
         });
 
         cardDiscardedCommand.execute();
@@ -1475,7 +1084,7 @@ describe('Commands', () => {
           cardId: randomUUID(),
           gameStateId: randomUUID(),
           lobbyId: randomUUID(),
-          userId: randomUUID(),
+          playerId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
@@ -1489,7 +1098,7 @@ describe('Commands', () => {
           cardId: 'non-uuid' as UUID,
           gameStateId: randomUUID(),
           lobbyId: randomUUID(),
-          userId: randomUUID(),
+          playerId: randomUUID(),
         });
 
         cardDiscardedCommand.execute();
@@ -1499,20 +1108,12 @@ describe('Commands', () => {
   });
 
   describe('SaveGameStateCommand', () => {
-    test('should throw GameStateNotFoundException exception', async () => {
-      const saveGameStateCommand = new SaveGameStateCommand(gameService, io, serverSocket, {
-        gameStateId: randomUUID(),
-      });
-
-      await expect(saveGameStateCommand.execute()).rejects.toThrow(GameStateNotFoundException);
-    });
-
     test('should save game state to file and emit GameStateSaved', async () => {
       const saveGameStateCommand = new SaveGameStateCommand(gameService, io, serverSocket, {
-        gameStateId: gameState.id,
+        gameState: new GameState(new Table()),
       });
 
-      jest.spyOn(FileService, 'storeGameState').mockResolvedValueOnce();
+      jest.spyOn(FileService, 'storeGameState').mockResolvedValueOnce(true);
 
       await saveGameStateCommand.execute();
 
@@ -1529,6 +1130,10 @@ describe('Commands', () => {
 
       const retrieveGameStateCommand = new RetrieveGameStateCommand(gameService, io, serverSocket, {
         gameStateId,
+        reconnectingPlayer: {
+          id: randomUUID(),
+          username: 'Player1',
+        },
       });
 
       jest.spyOn(gameService, 'getGameState').mockReturnValueOnce(undefined);
@@ -1537,9 +1142,15 @@ describe('Commands', () => {
       await expect(retrieveGameStateCommand.execute()).rejects.toThrow(FailedToRetrieveGameStateException);
     });
 
-    test('should retrieve game state if game state exists in repository', async () => {
+    test('should retrieve game state if game state exists', async () => {
+      gameService.setGameState(gameState);
+
       const retrieveGameStateCommand = new RetrieveGameStateCommand(gameService, io, serverSocket, {
         gameStateId: gameState.id,
+        reconnectingPlayer: {
+          id: randomUUID(),
+          username: 'Player1',
+        },
       });
 
       await retrieveGameStateCommand.execute();
@@ -1550,6 +1161,7 @@ describe('Commands', () => {
     });
 
     test('should load game state from file and emit GameStateRetrieved', async () => {
+      const playerId = randomUUID();
       const gameStateId = randomUUID();
       const gameStateJson: GameStateJson = {
         id: gameStateId,
@@ -1569,7 +1181,16 @@ describe('Commands', () => {
           id: randomUUID(),
           lastActivityTime: Date.now(),
           messages: [],
-          users: [],
+          users: [
+            {
+              id: playerId,
+              hand: {
+                cards: [],
+              },
+              isReady: false,
+              username: 'Player1',
+            },
+          ],
           deck: {
             id: randomUUID(),
             cards: [],
@@ -1579,6 +1200,10 @@ describe('Commands', () => {
 
       const retrieveGameStateCommand = new RetrieveGameStateCommand(gameService, io, serverSocket, {
         gameStateId: gameState.id,
+        reconnectingPlayer: {
+          id: playerId,
+          username: 'Player1',
+        },
       });
 
       jest.spyOn(gameService, 'getGameState').mockReturnValueOnce(undefined);
@@ -1594,7 +1219,7 @@ describe('Commands', () => {
 
   describe('UserDisconnectedCommand', () => {
     test('should remove user from lobby and lobby from lobby repository', (done) => {
-      const player = new Player('1234', 'test');
+      const player = new Player('Player1', new Hand(), randomUUID());
       gameService.getUserService().save(player);
       const lobby = new Lobby(player);
       gameService.getLobbyService().save(lobby);
@@ -1602,7 +1227,7 @@ describe('Commands', () => {
       expect(gameService.getLobbyService().findById(lobby.id)).toBeDefined();
 
       const userDisconnectCommand = new UserDisconnectCommand(gameService, io, serverSocket, {
-        userId: player.id,
+        playerId: player.id,
         gameStateId: gameState.id,
         lobbyId: lobby.id,
       });
@@ -1617,7 +1242,7 @@ describe('Commands', () => {
     test('should throw UserNotFoundException exception', (done) => {
       expect(() => {
         const userDisconnectCommand = new UserDisconnectCommand(gameService, io, serverSocket, {
-          userId: randomUUID(),
+          playerId: randomUUID(),
           gameStateId: randomUUID(),
           lobbyId: randomUUID(),
         });
@@ -1630,7 +1255,7 @@ describe('Commands', () => {
     test('should throw InvalidPayloadException exception', (done) => {
       expect(() => {
         const userDisconnectCommand = new UserDisconnectCommand(gameService, io, serverSocket, {
-          userId: randomUUID(),
+          playerId: randomUUID(),
           gameStateId: 'non-uuid' as UUID,
           lobbyId: randomUUID(),
         });
@@ -1643,20 +1268,12 @@ describe('Commands', () => {
 
   describe('GameOverCommand', () => {
     test('should end the game', (done) => {
-      const player = new Player('', 'test');
+      expect(gameState.gameStatus).toBe('in_progress');
 
-      const lobby = new Lobby(player);
-      lobby.setDeck(new Deck());
-      lobby.addUser(player);
-
-      lobbyService.save(lobby);
-
-      gameState.setLobby(lobby);
-
-      expect(gameState.gameStatus).toBe('not_started');
+      testPlayers[0].setHand(new Hand());
 
       const gameOverCommand = new GameOverCommand(gameService, io, serverSocket, {
-        lobbyId: gameState.lobby!.id,
+        lobbyId: testLobby.id,
         gameStateId: gameState.id,
       });
 
@@ -1668,13 +1285,13 @@ describe('Commands', () => {
     });
 
     test('should throw GameHasNotEndedException exception', (done) => {
-      const player = new Player('', 'test');
+      const player = new Player('Player1', new Hand(), randomUUID());
       player.addToHand(new Card(0));
 
       const lobby = new Lobby(player);
       lobby.addUser(player);
 
-      lobbyService.save(lobby);
+      gameService.getLobbyService().save(lobby);
 
       gameState.setLobby(lobby);
 
@@ -1706,7 +1323,8 @@ describe('Commands', () => {
     });
 
     test('should throw GameStateNotFoundException exception', (done) => {
-      const lobby = new Lobby(new Player('1234', 'test'));
+      const player = new Player('Player1', new Hand(), randomUUID());
+      const lobby = new Lobby(player);
 
       gameState.setLobby(lobby);
 
@@ -1740,7 +1358,7 @@ describe('Commands', () => {
     test('should throw UserNotFoundException exception', (done) => {
       expect(() => {
         const userReadyCommand = new UserReadyCommand(gameService, io, serverSocket, {
-          userId: randomUUID(),
+          playerId: randomUUID(),
           lobbyId: testLobby.id,
         });
         userReadyCommand.execute();
@@ -1749,9 +1367,11 @@ describe('Commands', () => {
     });
 
     test('should throw LobbyNotFoundException exception', (done) => {
+      const testPlayer = new Player('Player1', new Hand(), randomUUID());
+      gameService.getUserService().save(testPlayer);
       expect(() => {
         const userReadyCommand = new UserReadyCommand(gameService, io, serverSocket, {
-          userId: testPlayer.id,
+          playerId: testPlayer.id,
           lobbyId: randomUUID(),
         });
         userReadyCommand.execute();

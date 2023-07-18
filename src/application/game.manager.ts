@@ -40,12 +40,13 @@ class GameManager {
       logger.info(`🏨 Lobby: ${lobby.id} is being terminated due to inactivity.`);
       const players = lobby.getPlayers();
       const deck = lobby.getDeck();
-      const cards = deck?.getCards();
 
-      if (cards) {
-        this.gameService.getCardService().removeMany(cards);
-      }
+
       if (deck) {
+        const cards = deck?.getCards();
+        if (cards) {
+          this.gameService.getCardService().removeMany(cards);
+        }
         this.gameService.getDeckService().remove(deck.id);
       }
 

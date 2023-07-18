@@ -5,6 +5,7 @@ import GameService from '../services/game.service';
 import { EntityValidator } from '../utils/entity.validator';
 
 export type JoinLobbyPayload = {
+  playerId: UUID;
   lobbyId: UUID;
 };
 
@@ -19,9 +20,9 @@ class JoinLobbyCommand extends Command {
   }
 
   execute(): void {
-    const { lobbyId } = this.payload;
+    const { playerId, lobbyId } = this.payload;
 
-    const user = this.gameService.getUserService().findById(this.socket.id);
+    const user = this.gameService.getUserService().findById(playerId);
     this.entityValidator.validatePlayerExists(user);
 
     const lobby = this.gameService.getLobbyService().findById(lobbyId);
