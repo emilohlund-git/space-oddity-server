@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import GameNotInProgressException from '../src/application/exceptions/game-not-in-progress.exception';
 import { CardService } from '../src/application/services/card.service';
 import { DeckService } from '../src/application/services/deck.service';
@@ -48,7 +49,7 @@ describe('GameScenarios', () => {
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
     gameState = new GameState(new Table());
-    const lobby = new Lobby(new Player('', 'test'));
+    const lobby = new Lobby(new Player('Player1', new Hand(), randomUUID()));
     lobby.setDeck(getShuffledDeck());
     gameState.setLobby(lobby);
     gameService = new GameService(
@@ -67,9 +68,9 @@ describe('GameScenarios', () => {
     let player3: Player;
 
     beforeAll(() => {
-      player1 = new Player('1', 'player1');
-      player2 = new Player('2', 'player2');
-      player3 = new Player('3', 'player3');
+      player1 = new Player('Player1', new Hand(), randomUUID());
+      player2 = new Player('Player2', new Hand(), randomUUID());
+      player3 = new Player('Player3', new Hand(), randomUUID());
       gameService.getUserService().save(player1);
       gameService.getUserService().save(player2);
       gameService.getUserService().save(player3);

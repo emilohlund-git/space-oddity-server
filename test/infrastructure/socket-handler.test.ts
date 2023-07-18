@@ -1,4 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies */
+import { randomUUID } from 'crypto';
 import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server, Socket as ServerSocket } from 'socket.io';
@@ -11,6 +12,7 @@ import { TableService } from '../../src/application/services/table.service';
 import { UserService } from '../../src/application/services/user.service';
 import { EntityValidator } from '../../src/application/utils/entity.validator';
 import GameState from '../../src/domain/entities/GameState';
+import Hand from '../../src/domain/entities/Hand';
 import { Lobby } from '../../src/domain/entities/Lobby';
 import Player from '../../src/domain/entities/Player';
 import Table from '../../src/domain/entities/Table';
@@ -57,7 +59,7 @@ describe('SocketHandler', () => {
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
     gameState = new GameState(new Table());
-    gameState.setLobby(new Lobby(new Player('12345', 'testing')));
+    gameState.setLobby(new Lobby(new Player('Player1', new Hand(), randomUUID())));
     gameService = new GameService(
       userService,
       cardService,

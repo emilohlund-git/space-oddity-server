@@ -73,13 +73,10 @@ export class FileService {
   static async storeGameState(gameState: GameState): Promise<boolean> {
     const folderPath = './states';
     try {
-      f.mkdirSync(folderPath, { recursive: true });
-      f.writeFileSync(`./states/${gameState.id}.json`, JSON.stringify(gameState));
-      const memoryUsage = process.memoryUsage();
-      console.log(memoryUsage);
+      await fs.mkdir(folderPath, { recursive: true });
+      await fs.writeFile(`./states/${gameState.id}.json`, JSON.stringify(gameState));
       return await Promise.resolve(true);
     } catch (error) {
-      console.error('Error occurred while writing file:', error);
       return Promise.reject(error);
     }
   }

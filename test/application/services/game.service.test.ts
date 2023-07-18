@@ -10,6 +10,7 @@ import { UserService } from '../../../src/application/services/user.service';
 import Card, { CardType } from '../../../src/domain/entities/Card';
 import Deck from '../../../src/domain/entities/Deck';
 import GameState, { GameStatus, Lights } from '../../../src/domain/entities/GameState';
+import Hand from '../../../src/domain/entities/Hand';
 import { Lobby } from '../../../src/domain/entities/Lobby';
 import Player from '../../../src/domain/entities/Player';
 import Table from '../../../src/domain/entities/Table';
@@ -50,7 +51,7 @@ describe('GameService', () => {
     tableService = new TableService(tableRepository);
     deckService = new DeckService(deckRepository);
     gameState = new GameState(new Table());
-    gameState.setLobby(new Lobby(new Player('1234', 'test')));
+    gameState.setLobby(new Lobby(new Player('Player1', new Hand(), randomUUID())));
     gameService = new GameService(
       userService,
       cardService,
@@ -78,7 +79,7 @@ describe('GameService', () => {
   });
 
   describe('createFromLoadedJson', () => {
-    it('should throw LobbyNotFoundException exception', () => {
+    it('should throw LobbyNotFoundException exception', async () => {
       const gameStateJson: GameStateJson = {
         id: randomUUID(),
         table: {
@@ -90,12 +91,10 @@ describe('GameService', () => {
         light: Lights.BLUE,
       };
 
-      expect(() => {
-        gameService.createFromLoadedJson(gameStateJson);
-      }).toThrow(LobbyNotFoundException);
+      await expect(gameService.createFromLoadedJson(gameStateJson)).rejects.toThrow(LobbyNotFoundException);
     });
 
-    it('should create game entities from loaded JSON and set them in respective services', () => {
+    it('should create game entities from loaded JSON and set them in respective services', async () => {
       const gameStateJsonId = randomUUID();
 
       const gameStateJson: GameStateJson = {
@@ -163,7 +162,7 @@ describe('GameService', () => {
       const mockSaveDeck = jest.spyOn(gameService.getDeckService(), 'save');
       const mockSaveLobby = jest.spyOn(gameService.getLobbyService(), 'save');
 
-      const rescuedGameState = gameService.createFromLoadedJson(gameStateJson);
+      const rescuedGameState = await gameService.createFromLoadedJson(gameStateJson);
 
       expect(rescuedGameState).toBeInstanceOf(GameState);
       expect(rescuedGameState.id).toBe(gameStateJsonId);

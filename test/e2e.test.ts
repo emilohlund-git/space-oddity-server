@@ -120,12 +120,15 @@ describe('End to End tests', () => {
 
     await wait();
 
+    const players = gameService.getUserService().findAll();
+
     /* Player 1 creates a lobby and Player 2 joins it */
-    clientSocket.emit('CreateLobby');
+    clientSocket.emit('CreateLobby', {
+      playerId: players[0].id,
+    });
 
     await wait();
 
-    const players = gameService.getUserService().findAll();
     const lobby = gameService.getLobbyService().findAll()[0];
 
     const testDeck = new Deck();
@@ -141,6 +144,7 @@ describe('End to End tests', () => {
 
     clientSocket2.emit('JoinLobby', {
       lobbyId: lobby.id,
+      playerId: players[1].id,
     });
 
     await wait();
@@ -179,7 +183,7 @@ describe('End to End tests', () => {
           card2Id: matches[1].id,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
-          userId: currentPlayer.id,
+          playerId: currentPlayer.id,
         });
 
         await wait();
@@ -188,8 +192,8 @@ describe('End to End tests', () => {
           cardId: randomCardFromOtherPlayer.id,
           gameStateId: gameState.id,
           lobbyId: gameState.lobby!.id,
-          userNewId: currentPlayer.id,
-          userPreviousId: otherPlayer.id,
+          playerNewId: currentPlayer.id,
+          playerPreviousId: otherPlayer.id,
           fromOpponent: !lobby.getDeck()!.hasCards(),
         });
 
@@ -199,6 +203,7 @@ describe('End to End tests', () => {
       currentSocket.emit('ChangeTurn', {
         gameStateId: gameState.id,
         lobbyId: gameState.lobby!.id,
+        playerId: currentPlayer.id,
       });
 
       await wait();
@@ -227,7 +232,9 @@ describe('End to End tests', () => {
     expect(players[1].getUserName()).toBe('test2');
 
     /* Player 1 creates a lobby and Player 2 joins it */
-    clientSocket.emit('CreateLobby');
+    clientSocket.emit('CreateLobby', {
+      playerId: players[0].id,
+    });
 
     await wait();
 
@@ -267,6 +274,7 @@ describe('End to End tests', () => {
 
     clientSocket2.emit('JoinLobby', {
       lobbyId: lobby.id,
+      playerId: players[1].id,
     });
 
     await wait();
@@ -278,7 +286,7 @@ describe('End to End tests', () => {
     clientSocket.emit('SendMessage', {
       lobbyId: lobby.id,
       message: 'Press ready',
-      userId: players[0].id,
+      playerId: players[0].id,
     });
 
     await wait();
@@ -293,11 +301,11 @@ describe('End to End tests', () => {
 
     clientSocket.emit('UserReady', {
       lobbyId: lobby.id,
-      userId: players[0].id,
+      playerId: players[0].id,
     });
     clientSocket2.emit('UserReady', {
       lobbyId: lobby.id,
-      userId: players[1].id,
+      playerId: players[1].id,
     });
 
     await wait();

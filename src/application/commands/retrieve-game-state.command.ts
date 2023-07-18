@@ -26,6 +26,15 @@ class RetrieveGameStateCommand extends Command {
   async execute(): Promise<void> {
     const { gameStateId, reconnectingPlayer } = this.payload;
 
+    const gameStateExists = this.gameService.getGameState(gameStateId);
+    if (gameStateExists) {
+      this.socket.emit('GameStateRetrieved', {
+        gameState: gameStateExists,
+        player: gameStateExists.lobby!.getPlayers().find((p) => p.id === reconnectingPlayer.id)!,
+      });
+      return;
+    }
+
     const gameStateJson = await FileService.loadGameState(gameStateId);
     this.entityValidator.validateRetrievedGameState(gameStateJson);
 

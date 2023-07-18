@@ -1,5 +1,6 @@
 import { CardDiscardedPayload } from '../../application/commands/card-discarded.command';
 import { ChangeTurnPayload } from '../../application/commands/change-turn.command';
+import { CreateLobbyPayload } from '../../application/commands/create-lobby.command';
 import { GameOverPayload } from '../../application/commands/game-over.command';
 import { JoinLobbyPayload } from '../../application/commands/join-lobby.command';
 import { LeaveLobbyPayload } from '../../application/commands/leave-lobby.command';
@@ -22,7 +23,7 @@ import { SpecialEffect } from '../entities/TwistedCard';
 
 export type ClientEvents = {
   UserConnect: (payload: UserConnectPayload) => void;
-  CreateLobby: () => void;
+  CreateLobby: (payload: CreateLobbyPayload) => void;
   JoinLobby: (payload: JoinLobbyPayload) => void;
   LeaveLobby: (payload: LeaveLobbyPayload) => void;
   SendMessage: (payload: SendMessagePayload) => void;
