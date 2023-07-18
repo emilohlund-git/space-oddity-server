@@ -199,6 +199,11 @@ describe('Entities', () => {
       player.setHand(newPlayerHand);
       expect(player.getHand()).toBe(newPlayerHand);
 
+      const newPlayerId = randomUUID();
+      player.setId(newPlayerId);
+
+      expect(player.getId()).toBe(newPlayerId);
+
       done();
     });
   });

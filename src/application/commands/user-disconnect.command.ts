@@ -22,24 +22,12 @@ class UserDisconnectCommand extends Command {
   }
 
   execute(): any {
-    const { lobbyId, playerId, gameStateId } = this.payload;
+    const { lobbyId, playerId } = this.payload;
 
     logger.info(`👤 ${playerId} just disconnected from the server.`);
 
     const user = this.gameService.getUserService().findById(playerId);
     this.entityValidator.validatePlayerExists(user);
-
-    if (gameStateId) {
-      const gameState = this.gameService.getGameState(gameStateId);
-
-      if (gameState) {
-        gameState.lobby?.removeUser(playerId);
-        if (gameState.lobby?.getPlayers().length === 0) {
-          gameState.setLobby(undefined);
-          this.gameService.removeGameState(gameStateId);
-        }
-      }
-    }
 
     if (lobbyId) {
       const lobby = this.gameService.getLobbyService().findById(lobbyId);

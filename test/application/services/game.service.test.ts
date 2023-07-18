@@ -14,6 +14,7 @@ import Hand from '../../../src/domain/entities/Hand';
 import { Lobby } from '../../../src/domain/entities/Lobby';
 import Player from '../../../src/domain/entities/Player';
 import Table from '../../../src/domain/entities/Table';
+import { SpecialEffect } from '../../../src/domain/entities/TwistedCard';
 import { CardRepository } from '../../../src/domain/repositories/card-repository.interface';
 import { DeckRepository } from '../../../src/domain/repositories/deck-repository.interface';
 import { LobbyRepository } from '../../../src/domain/repositories/lobby-repository.interface';
@@ -114,7 +115,12 @@ describe('GameService', () => {
               id: 'user-1',
               username: 'user1',
               hand: {
-                cards: [],
+                cards: [
+                  { graphic: '1', id: randomUUID(), type: CardType.Regular, value: 0 },
+                  { graphic: '2', id: randomUUID(), type: CardType.Regular, value: 0 },
+                  { graphic: '3', id: randomUUID(), type: CardType.Twisted, value: 24, specialEffect: SpecialEffect.SneakAPeak },
+                  { graphic: '4', id: randomUUID(), type: CardType.BlackHole, value: 25 },
+                ],
               },
               isReady: true,
             },

@@ -1,5 +1,6 @@
 import { UUID } from 'crypto';
-import Card from '../../domain/entities/Card';
+import BlackHoleCard from '../../domain/entities/BlackHoleCard';
+import Card, { CardType } from '../../domain/entities/Card';
 import Deck from '../../domain/entities/Deck';
 import GameState from '../../domain/entities/GameState';
 import Hand from '../../domain/entities/Hand';
@@ -147,8 +148,11 @@ class GameService {
     const cards = <Card[]>[];
 
     for (const c of json) {
-      if (c.specialEffect) {
+      if (c.type === CardType.Twisted) {
         const card = mapJsonToClass(c, TwistedCard);
+        cards.push(card);
+      } else if (c.type === CardType.BlackHole) {
+        const card = mapJsonToClass(c, BlackHoleCard);
         cards.push(card);
       } else {
         const card = mapJsonToClass(c, Card);
