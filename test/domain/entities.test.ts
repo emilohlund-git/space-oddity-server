@@ -245,6 +245,24 @@ describe('Entities', () => {
   });
 
   describe('GameState', () => {
+    describe('checkLobbyWinner', () => {
+      let gameState: GameState;
+      let lobby: Lobby;
+
+      beforeEach(() => {
+        gameState = new GameState(new Table());
+        player = new Player('Player1', new Hand(), randomUUID());
+        lobby = new Lobby(player);
+        lobby.setDeck(new Deck());
+        gameState.setLobby(lobby);
+        gameState.startGame();
+      });
+
+      test('should return player', () => {
+        expect(gameState.checkLobbyWinner()).toBe(player);
+      });
+    });
+
     describe('getPlayerWithLeastAmountOfCards', () => {
       let gameState: GameState;
       let lobby: Lobby;

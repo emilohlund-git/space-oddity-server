@@ -40,6 +40,12 @@ class MatchCardsCommand extends Command {
     lobby.lastActivityTime = Date.now();
 
     this.io.to(lobbyId).emit('CardsMatched', gameState);
+
+    const winner = gameState.checkLobbyWinner();
+
+    if (winner) {
+      this.io.to(lobbyId).emit('GameEnded', winner);
+    }
   }
 }
 

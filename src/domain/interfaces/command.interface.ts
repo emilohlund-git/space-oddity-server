@@ -70,7 +70,7 @@ export type ServerEvents = {
 export abstract class Command {
   constructor(
     protected readonly gameService: GameService,
-    protected readonly io: Server,
+    protected readonly io: Server<ClientEvents, ServerEvents>,
     protected readonly socket: Socket<ClientEvents, ServerEvents>,
     protected readonly payload: Record<string, any>,
     protected readonly entityValidator: EntityValidator = new EntityValidator(),
