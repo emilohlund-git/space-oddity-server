@@ -1,9 +1,6 @@
 import { UUID } from 'crypto';
-import type { Server, Socket } from 'socket.io';
 import { logger } from '../../configurations/logger.config';
-import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import GameService from '../services/game.service';
-import { EntityValidator } from '../utils/entity.validator';
+import { Command } from '../../domain/interfaces/command.interface';
 
 export type UserDisconnectPayload = {
   playerId: UUID;
@@ -12,15 +9,6 @@ export type UserDisconnectPayload = {
 };
 
 class UserDisconnectCommand extends Command {
-  constructor(
-    private readonly gameService: GameService,
-    private readonly io: Server,
-    private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: UserDisconnectPayload,
-  ) {
-    super(payload, new EntityValidator());
-  }
-
   execute(): any {
     const { lobbyId, playerId } = this.payload;
 

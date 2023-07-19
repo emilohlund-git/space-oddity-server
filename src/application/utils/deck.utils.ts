@@ -3,22 +3,29 @@ import Card from '../../domain/entities/Card';
 import Deck from '../../domain/entities/Deck';
 import TwistedCard, { SpecialEffect } from '../../domain/entities/TwistedCard';
 
+export const createCard = (value: number): Card => {
+  if (value === 21 || value === 22) {
+    return new BlackHoleCard(value);
+  } else if (value === 23) {
+    return new TwistedCard(value, SpecialEffect.SwitchLight);
+  } else if (value === 24) {
+    return new TwistedCard(value, SpecialEffect.SwapHand);
+  } else if (value === 25) {
+    return new TwistedCard(value, SpecialEffect.SneakAPeak);
+  } else {
+    return new Card(value);
+  }
+};
+
 export const getShuffledDeck = (): Deck => {
   const cards = <Card[]>[];
-  cards.push(new TwistedCard(23, SpecialEffect.SwitchLight));
-  cards.push(new TwistedCard(24, SpecialEffect.SwapHand));
-  cards.push(new TwistedCard(25, SpecialEffect.SneakAPeak));
-  cards.push(new BlackHoleCard(21));
-  cards.push(new BlackHoleCard(22));
 
   for (let value = 1; value <= 20; value++) {
-    const card = new Card(value);
+    const card = createCard(value);
     cards.push(card);
-    if (card.getValue() === 19) {
-      continue;
-    } else {
-      const cardCopy = new Card(value);
-      cards.push(cardCopy);
+
+    if (value !== 19) {
+      cards.push(card.clone());
     }
   }
 

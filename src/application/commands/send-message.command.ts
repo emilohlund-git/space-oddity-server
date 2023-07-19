@@ -1,9 +1,6 @@
 import { UUID } from 'crypto';
-import type { Server, Socket } from 'socket.io';
 import { Message } from '../../domain/entities/Message';
-import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import GameService from '../services/game.service';
-import { EntityValidator } from '../utils/entity.validator';
+import { Command } from '../../domain/interfaces/command.interface';
 
 export type SendMessagePayload = {
   playerId: UUID;
@@ -12,15 +9,6 @@ export type SendMessagePayload = {
 };
 
 class SendMessageCommand extends Command {
-  constructor(
-    private readonly gameService: GameService,
-    private readonly io: Server,
-    private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: SendMessagePayload,
-  ) {
-    super(payload, new EntityValidator());
-  }
-
   execute(): void {
     const { playerId, lobbyId, message } = this.payload;
 
@@ -33,6 +21,7 @@ class SendMessageCommand extends Command {
     const lobbyMessage = new Message(player, message);
 
     lobby.addMessage(lobbyMessage);
+
     lobby.lastActivityTime = Date.now();
 
     this.io.to(lobbyId).emit('MessageSent', lobby);

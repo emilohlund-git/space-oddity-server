@@ -1,9 +1,6 @@
 import { UUID } from 'crypto';
-import type { Server, Socket } from 'socket.io';
 import Card from '../../domain/entities/Card';
-import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import GameService from '../services/game.service';
-import { EntityValidator } from '../utils/entity.validator';
+import { Command } from '../../domain/interfaces/command.interface';
 
 export type MatchCardsPayload = {
   playerId: UUID;
@@ -14,15 +11,6 @@ export type MatchCardsPayload = {
 };
 
 class MatchCardsCommand extends Command {
-  constructor(
-    private readonly gameService: GameService,
-    private readonly io: Server,
-    private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: MatchCardsPayload,
-  ) {
-    super(payload, new EntityValidator());
-  }
-
   execute(): void {
     const { playerId, card1Id, card2Id, gameStateId, lobbyId } = this.payload;
 
@@ -48,6 +36,8 @@ class MatchCardsCommand extends Command {
     user.removeFromHand(card2);
     gameState.table.disposeCard(card1);
     gameState.table.disposeCard(card2);
+
+    lobby.lastActivityTime = Date.now();
 
     this.io.to(lobbyId).emit('CardsMatched', gameState);
   }

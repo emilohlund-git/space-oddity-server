@@ -4,9 +4,8 @@ import { createServer } from 'http';
 import { Server, Socket as ServerSocket } from 'socket.io';
 import Client, { Socket as ClientSocket } from 'socket.io-client';
 import GameService from '../../src/application/services/game.service';
-import { EntityValidator } from '../../src/application/utils/entity.validator';
 import { Command } from '../../src/domain/interfaces/command.interface';
-import SocketHandler from '../../src/infrastructure/socket.handler';
+import SocketHandler, { CommandFactory } from '../../src/infrastructure/socket.handler';
 import { mockGameService } from '../utils/game-service.mock';
 dotenv.config();
 
@@ -39,40 +38,47 @@ describe('SocketHandler', () => {
     clientSocket.close();
   });
 
+  describe('getCommands', () => {
+    test('should retrieve all registered commands in the command factory', () => {
+      const socketHandler = new SocketHandler(io, gameService);
+      const commands: CommandFactory = socketHandler.commands;
+
+      for (const commandName in commands) {
+        if (commands.hasOwnProperty(commandName)) {
+          const command = commands[commandName as keyof CommandFactory];
+          expect(command).toBeDefined();
+        }
+      }
+    });
+  });
+
   describe('handleConnection', () => {
     test('should register event listeners for each command', (done) => {
       class MockCommand extends Command {
-        constructor(private socket: ServerSocket, private payload: any) {
-          super(payload, new EntityValidator());
-        }
-
         execute(): void { /* Mock implementation */ }
       }
 
-      const mockCommandClass = MockCommand as any;
       const mockPayload = { test: 'payload' };
 
       const socketHandler = new SocketHandler(io, gameService);
 
-      socketHandler.setCommands({
-        UserConnect: (socket, payload) => new mockCommandClass(socket, payload),
-        CreateLobby: (socket, payload) => new mockCommandClass(socket, payload),
-        JoinLobby: (socket, payload) => new mockCommandClass(socket, payload),
-        LeaveLobby: (socket, payload) => new mockCommandClass(socket, payload),
-        SendMessage: (socket, payload) => new mockCommandClass(socket, payload),
-        UserReady: (socket, payload) => new mockCommandClass(socket, payload),
-        PickedCard: (socket, payload) => new mockCommandClass(socket, payload),
-        PlayedCard: (socket, payload) => new mockCommandClass(socket, payload),
-        ChangeTurn: (socket, payload) => new mockCommandClass(socket, payload),
-        StartGame: (socket, payload) => new mockCommandClass(socket, payload),
-        CardDiscarded: (socket, payload) => new mockCommandClass(socket, payload),
-        GameOver: (socket, payload) => new mockCommandClass(socket, payload),
-        UserDisconnect: (socket, payload) => new mockCommandClass(socket, payload),
-        MatchCards: (socket, payload) => new mockCommandClass(socket, payload),
-        SaveGameState: (socket, payload) => new mockCommandClass(socket, payload),
-        RetrieveGameState: (socket, payload) => new mockCommandClass(socket, payload),
-        Ping: (socket, payload) => new mockCommandClass(socket, payload),
-      });
+      socketHandler.registerCommand('UserConnect', MockCommand);
+      socketHandler.registerCommand('CreateLobby', MockCommand);
+      socketHandler.registerCommand('JoinLobby', MockCommand);
+      socketHandler.registerCommand('LeaveLobby', MockCommand);
+      socketHandler.registerCommand('SendMessage', MockCommand);
+      socketHandler.registerCommand('UserReady', MockCommand);
+      socketHandler.registerCommand('PickedCard', MockCommand);
+      socketHandler.registerCommand('PlayedCard', MockCommand);
+      socketHandler.registerCommand('ChangeTurn', MockCommand);
+      socketHandler.registerCommand('StartGame', MockCommand);
+      socketHandler.registerCommand('CardDiscarded', MockCommand);
+      socketHandler.registerCommand('GameOver', MockCommand);
+      socketHandler.registerCommand('UserDisconnect', MockCommand);
+      socketHandler.registerCommand('MatchCards', MockCommand);
+      socketHandler.registerCommand('SaveGameState', MockCommand);
+      socketHandler.registerCommand('RetrieveGameState', MockCommand);
+      socketHandler.registerCommand('Ping', MockCommand);
 
       socketHandler.handleConnection();
 
@@ -175,21 +181,6 @@ describe('SocketHandler', () => {
       socketHandler.executeCommand(mockSocket, {}, mockCreateCommand);
 
       expect(mockHandleSocketError).toHaveBeenCalled();
-    });
-
-    describe('setCommands', () => {
-      test('should set the commands', () => {
-        const socketHandler = new SocketHandler(io, gameService);
-        const commands = {
-          UserConnect: jest.fn(),
-          CreateLobby: jest.fn(),
-          JoinLobby: jest.fn(),
-        } as any;
-
-        socketHandler.setCommands(commands);
-
-        expect(socketHandler.getCommands()).toEqual(commands);
-      });
     });
 
     describe('handleSocketError', () => {

@@ -73,6 +73,10 @@ class Card {
   private getGraphicByValue(value: number): string {
     return cardGraphicMapping[value] || 'defaultGraphic.png';
   }
+
+  public clone(): Card {
+    return new Card(this.value);
+  }
 }
 
 export default Card;

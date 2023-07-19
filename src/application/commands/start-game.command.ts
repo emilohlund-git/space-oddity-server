@@ -1,10 +1,7 @@
 import { UUID } from 'crypto';
-import type { Server, Socket } from 'socket.io';
 import GameState from '../../domain/entities/GameState';
 import Table from '../../domain/entities/Table';
-import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import GameService from '../services/game.service';
-import { EntityValidator } from '../utils/entity.validator';
+import { Command } from '../../domain/interfaces/command.interface';
 import { createPayloadValidationRules, validatePayload } from '../utils/payload.validator';
 
 export type StartGamePayload = {
@@ -12,15 +9,6 @@ export type StartGamePayload = {
 };
 
 class StartGameCommand extends Command {
-  constructor(
-    private readonly gameService: GameService,
-    private readonly io: Server,
-    private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: StartGamePayload,
-  ) {
-    super(payload, new EntityValidator());
-  }
-
   execute(): void {
     const { lobbyId } = this.payload;
 
@@ -39,9 +27,7 @@ class StartGameCommand extends Command {
     gameState.setLobby(lobby);
     gameState.startGame();
 
-    if (gameState.lobby) {
-      gameState.lobby.lastActivityTime = Date.now();
-    }
+    lobby.lastActivityTime = Date.now();
 
     this.io.to(lobbyId).emit('GameStarted', gameState);
   }

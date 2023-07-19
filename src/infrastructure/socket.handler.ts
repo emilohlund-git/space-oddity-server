@@ -24,12 +24,12 @@ import { ClientEvents, Command, ServerEvents } from '../domain/interfaces/comman
 
 dotenv.config();
 
-const validApiKeys = [process.env.API_KEY];
+const validApiKeys: Readonly<string[]> = [process.env.API_KEY || ''];
 
-export type CommandFactory = Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: any) => Command>;
+export type CommandFactory = Record<keyof ClientEvents, (socket: Socket<ClientEvents, ServerEvents>, payload: Record<string, unknown>) => Command>;
 
 class SocketHandler {
-  private commandFactory: CommandFactory;
+  private readonly commandFactory: CommandFactory;
 
   private readonly io: Server;
 
@@ -39,7 +39,10 @@ class SocketHandler {
   ) {
     this.io = io;
     this.commandFactory = {} as CommandFactory;
+    this.registerCommands();
+  }
 
+  private registerCommands(): void {
     this.registerCommand('UserConnect', UserConnectCommand);
     this.registerCommand('CreateLobby', CreateLobbyCommand);
     this.registerCommand('JoinLobby', JoinLobbyCommand);
@@ -63,17 +66,13 @@ class SocketHandler {
     eventName: keyof ClientEvents,
     commandClass: new (...args: any[]) => T,
   ): void {
-    this.commandFactory[eventName] = (socket: Socket<ClientEvents, ServerEvents>, payload: any) => {
+    this.commandFactory[eventName] = (socket: Socket<ClientEvents, ServerEvents>, payload: Record<string, unknown>) => {
       return new commandClass(this.gameService, this.io, socket, payload);
     };
   }
 
-  public getCommands(): CommandFactory {
+  public get commands(): Readonly<CommandFactory> {
     return this.commandFactory;
-  }
-
-  public setCommands(commands: CommandFactory) {
-    this.commandFactory = commands;
   }
 
   public handleConnection(): void {
@@ -95,12 +94,12 @@ class SocketHandler {
     this.io.on('connection', (socket: Socket) => {
       logger.info(`🌎 ${socket.id} has connected.`);
 
-      Object.entries(this.commandFactory).forEach(([eventName, createCommand]) => {
+      for (const [eventName, createCommand] of Object.entries(this.commandFactory)) {
         socket.on(eventName as keyof ClientEvents, (payload: any) => {
           logger.info(`✨ User: ${socket.id} called Event: ${eventName} with payload: ${JSON.stringify(payload)}`);
           this.executeCommand(socket, payload, createCommand);
         });
-      });
+      }
     });
   }
 

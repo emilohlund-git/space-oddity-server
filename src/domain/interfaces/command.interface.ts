@@ -1,3 +1,4 @@
+import { Server, Socket } from 'socket.io';
 import { CardDiscardedPayload } from '../../application/commands/card-discarded.command';
 import { ChangeTurnPayload } from '../../application/commands/change-turn.command';
 import { CreateLobbyPayload } from '../../application/commands/create-lobby.command';
@@ -15,12 +16,12 @@ import { StartGamePayload } from '../../application/commands/start-game.command'
 import { UserConnectPayload } from '../../application/commands/user-connect.command';
 import { UserDisconnectPayload } from '../../application/commands/user-disconnect.command';
 import { UserReadyPayload } from '../../application/commands/user-ready.command';
+import GameService from '../../application/services/game.service';
 import { EntityValidator } from '../../application/utils/entity.validator';
 import { createPayloadValidationRules, validatePayload } from '../../application/utils/payload.validator';
 import GameState from '../entities/GameState';
 import { Lobby } from '../entities/Lobby';
 import Player from '../entities/Player';
-import { SpecialEffect } from '../entities/TwistedCard';
 
 export type ClientEvents = {
   UserConnect: (payload: UserConnectPayload) => void;
@@ -45,33 +46,36 @@ export type ClientEvents = {
 export type ServerEvents = {
   UserConnected: (user: Player) => void;
   LobbyCreated: (lobby: Lobby) => void;
-  UserJoinedLobby: (lobbyId: string, user: Player) => void;
-  UserLeftLobby: (lobbyId: string, userId: string) => void;
-  MessageSent: (lobbyId: string, userId: string, message: string) => void;
-  UserReady: (lobbyId: string, userId: string) => void;
-  PickedCard: (cardId: string, userId: string) => void;
-  PlayedCard: (cardEffect: SpecialEffect, userId: string, targetUserId?: string) => void;
-  ChangeTurn: (userId: string) => void;
-  GameStarted: () => void;
+  UserJoinedLobby: (lobby: Lobby) => void;
+  UserLeftLobby: (lobby: Lobby) => void;
+  MessageSent: (lobby: Lobby) => void;
+  UserReady: (lobby: Lobby) => void;
+  PickedCard: (gameState: GameState) => void;
+  PlayedCard: (gameState: GameState) => void;
+  ChangeTurn: (gameState: GameState) => void;
+  GameStarted: (gameState: GameState) => void;
   DiscardedCard: (lobbyId: string, tableId: string, cardId: string) => void;
-  GameEnded: () => void;
+  GameEnded: (winner: Player) => void;
   UserDisconnected: (user: Player) => void;
   CardsMatched: (gameState: GameState) => void;
-  GameStateSaved: () => void;
   GameStateRetrieved: (payload: {
-    gameState: GameState,
-    player: Player,
+    gameState: GameState;
+    player: Player;
   }) => void;
-  Pong: () => any;
+  GameStateSaved: () => void;
+  Pong: () => void;
+  error: (payload: any) => void;
 };
 
 export abstract class Command {
   constructor(
-    payload: Record<string, any>,
-    protected readonly entityValidator: EntityValidator,
+    protected readonly gameService: GameService,
+    protected readonly io: Server,
+    protected readonly socket: Socket<ClientEvents, ServerEvents>,
+    protected readonly payload: Record<string, any>,
+    protected readonly entityValidator: EntityValidator = new EntityValidator(),
   ) {
     this.payloadValidation(payload);
-    this.entityValidator = new EntityValidator();
   }
 
   public abstract execute(): void;

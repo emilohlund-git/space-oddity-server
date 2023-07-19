@@ -1,8 +1,5 @@
 import { UUID } from 'crypto';
-import type { Server, Socket } from 'socket.io';
-import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import GameService from '../services/game.service';
-import { EntityValidator } from '../utils/entity.validator';
+import { Command } from '../../domain/interfaces/command.interface';
 
 export type PickedCardPayload = {
   playerPreviousId: UUID;
@@ -14,15 +11,6 @@ export type PickedCardPayload = {
 };
 
 class PickedCardCommand extends Command {
-  constructor(
-    private readonly gameService: GameService,
-    private readonly io: Server,
-    private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: PickedCardPayload,
-  ) {
-    super(payload, new EntityValidator());
-  }
-
   execute(): void {
     const { lobbyId, fromOpponent, gameStateId, playerPreviousId, playerNewId, cardId } = this.payload;
 
@@ -59,9 +47,7 @@ class PickedCardCommand extends Command {
       gameState.transferCard(previousOwner, newOwner, card);
     }
 
-    if (gameState.lobby) {
-      gameState.lobby.lastActivityTime = Date.now();
-    }
+    lobby.lastActivityTime = Date.now();
 
     this.io.to(lobbyId).emit('PickedCard', gameState);
   }
