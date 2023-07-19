@@ -24,7 +24,7 @@ export const getShuffledDeck = (): Deck => {
     const card = createCard(value);
     cards.push(card);
 
-    if (value !== 19 && card.getType() === CardType.Regular) {
+    if (value !== 19 || card.getType() === CardType.Regular) {
       cards.push(card.clone());
     }
   }

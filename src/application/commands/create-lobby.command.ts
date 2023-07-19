@@ -21,6 +21,7 @@ class CreateLobbyCommand extends Command {
 
     this.gameService.getCardService().saveMany(deck.getCards());
     this.gameService.getLobbyService().save(lobby);
+    this.gameService.getDeckService().save(deck);
 
     this.socket.join(lobby.id);
     this.socket.emit('LobbyCreated', lobby);
