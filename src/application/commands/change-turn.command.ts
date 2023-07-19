@@ -1,8 +1,5 @@
 import { UUID } from 'crypto';
-import { Server, Socket } from 'socket.io';
-import GameService from '../../application/services/game.service';
-import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import { EntityValidator } from '../utils/entity.validator';
+import { Command } from '../../domain/interfaces/command.interface';
 
 export type ChangeTurnPayload = {
   gameStateId: UUID;
@@ -11,15 +8,6 @@ export type ChangeTurnPayload = {
 };
 
 class ChangeTurnCommand extends Command {
-  constructor(
-    private readonly gameService: GameService,
-    private readonly io: Server,
-    private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: ChangeTurnPayload,
-  ) {
-    super(payload, new EntityValidator());
-  }
-
   public execute(): void {
     const { playerId, gameStateId, lobbyId } = this.payload;
 

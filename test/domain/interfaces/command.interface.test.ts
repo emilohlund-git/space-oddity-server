@@ -1,14 +1,11 @@
-import { EntityValidator } from '../../../src/application/utils/entity.validator';
+import { Server, Socket } from 'socket.io';
 import { createPayloadValidationRules, validatePayload } from '../../../src/application/utils/payload.validator';
 import { Command } from '../../../src/domain/interfaces/command.interface';
+import { mockGameService } from '../../utils/game-service.mock';
 
 jest.mock('../../../src/application/utils/payload.validator');
 
 class MockCommand extends Command {
-  constructor(private readonly payload: any) {
-    super(payload, new EntityValidator());
-  }
-
   execute(): void {
     throw new Error('Test');
   }
@@ -26,7 +23,7 @@ describe('Command', () => {
   });
 
   it('should validate the payload during construction', () => {
-    const command = new MockCommand(payload);
+    const command = new MockCommand(mockGameService().mockedGameService, {} as Server, {} as Socket, {});
 
     expect(command).toBeDefined();
     expect(createPayloadValidationRules).toHaveBeenCalledWith(payload);
@@ -34,13 +31,13 @@ describe('Command', () => {
   });
 
   it('should have thrown an error on execute', () => {
-    const command = new MockCommand(payload);
+    const command = new MockCommand(mockGameService().mockedGameService, {} as Server, {} as Socket, {});
 
     expect(() => command.execute()).toThrow(Error);
   });
 
   it('should have an execute method', () => {
-    const command = new MockCommand(payload);
+    const command = new MockCommand(mockGameService().mockedGameService, {} as Server, {} as Socket, {});
 
     expect(command.execute).toBeDefined();
   });

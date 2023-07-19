@@ -1,8 +1,5 @@
 import { UUID } from 'crypto';
-import { Server, Socket } from 'socket.io';
-import GameService from '../../application/services/game.service';
-import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import { EntityValidator } from '../utils/entity.validator';
+import { Command } from '../../domain/interfaces/command.interface';
 
 export type CardDiscardedPayload = {
   gameStateId: UUID;
@@ -12,15 +9,6 @@ export type CardDiscardedPayload = {
 };
 
 class CardDiscardedCommand extends Command {
-  constructor(
-    private readonly gameService: GameService,
-    private readonly io: Server,
-    private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: CardDiscardedPayload,
-  ) {
-    super(payload, new EntityValidator());
-  }
-
   public execute(): void {
     const { gameStateId, cardId, lobbyId, playerId } = this.payload;
 
