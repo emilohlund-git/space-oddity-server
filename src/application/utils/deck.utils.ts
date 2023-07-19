@@ -1,5 +1,5 @@
 import BlackHoleCard from '../../domain/entities/BlackHoleCard';
-import Card from '../../domain/entities/Card';
+import Card, { CardType } from '../../domain/entities/Card';
 import Deck from '../../domain/entities/Deck';
 import TwistedCard, { SpecialEffect } from '../../domain/entities/TwistedCard';
 
@@ -24,9 +24,7 @@ export const getShuffledDeck = (): Deck => {
     const card = createCard(value);
     cards.push(card);
 
-    if (value !== 19 &&
-      (card instanceof TwistedCard === false ||
-        card instanceof BlackHoleCard === false)) {
+    if (value !== 19 && card.getType() === CardType.Regular) {
       cards.push(card.clone());
     }
   }
