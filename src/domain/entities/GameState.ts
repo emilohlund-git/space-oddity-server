@@ -151,6 +151,10 @@ class GameState {
     }
 
     for (const player of players) {
+      if (player.getHand().getCards().length === 0) {
+        playerWithLeastAmountOfCards = player;
+        break;
+      }
       if (playerWithLeastAmountOfCards.getHand().getCards().length >
         player.getHand().getCards().length) {
         playerWithLeastAmountOfCards = player;

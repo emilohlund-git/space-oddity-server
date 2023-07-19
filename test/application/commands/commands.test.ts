@@ -36,6 +36,7 @@ import TableNotFoundException from '../../../src/application/exceptions/table-no
 import UserNotFoundException from '../../../src/application/exceptions/user-not-found.exception';
 import { FileService, GameStateJson } from '../../../src/application/services/file.service';
 import GameService from '../../../src/application/services/game.service';
+import { TwistedCardDescription } from '../../../src/application/utils/deck.utils';
 import Card from '../../../src/domain/entities/Card';
 import Deck from '../../../src/domain/entities/Deck';
 import GameState, { GameStatus, Lights } from '../../../src/domain/entities/GameState';
@@ -176,6 +177,42 @@ describe('Commands', () => {
   });
 
   describe('PlayedCardCommand', () => {
+    test('should check for and return a winner and emit GameEnded', (done) => {
+      const testCard = new TwistedCard(24, SpecialEffect.SwitchLight, TwistedCardDescription.SwitchLight);
+      gameService.getCardService().save(testCard);
+
+      const testHand = new Hand();
+      testHand.addCard(testCard);
+      testPlayers[0].setHand(testHand);
+
+      const joinLobbyCommand = new JoinLobbyCommand(gameService, io, serverSocket, {
+        playerId: testPlayers[0].id,
+        lobbyId: testLobby.id,
+      });
+
+      joinLobbyCommand.execute();
+
+      const checkLobbyWinnerMock = jest.spyOn(gameState, 'checkLobbyWinner');
+
+      const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
+        cardId: testCard.id,
+        tableId: gameState.table.id,
+        playerId: testPlayers[0].id,
+        targetPlayerId: testPlayers[1].id,
+        gameStateId: gameState.id,
+        lobbyId: testLobby.id,
+      });
+
+      clientSocket.on('GameEnded', (payload) => {
+        expect(checkLobbyWinnerMock).toHaveBeenCalled();
+        expect(payload).toBeDefined();
+        expect(payload.id).toBe(testPlayers[0].id);
+        done();
+      });
+
+      playedCardCommand.execute();
+    });
+
     test('should do nothing special', (done) => {
       expect(() => {
         const playedCardCommand = new PlayedCardCommand(gameService, io, serverSocket, {
@@ -469,6 +506,43 @@ describe('Commands', () => {
   });
 
   describe('MatchCardsCommand', () => {
+    test('should check for and return a winner and emit GameEnded', (done) => {
+      const testCard = new Card(2);
+      const testCard2 = new Card(2);
+      gameService.getCardService().save(testCard);
+      gameService.getCardService().save(testCard2);
+
+      const testHand = new Hand();
+      testHand.addCard(testCard);
+      testPlayers[0].setHand(testHand);
+
+      const joinLobbyCommand = new JoinLobbyCommand(gameService, io, serverSocket, {
+        playerId: testPlayers[0].id,
+        lobbyId: testLobby.id,
+      });
+
+      joinLobbyCommand.execute();
+
+      const checkLobbyWinnerMock = jest.spyOn(gameState, 'checkLobbyWinner');
+
+      const matchCardsCommand = new MatchCardsCommand(gameService, io, serverSocket, {
+        card1Id: testCard.id,
+        card2Id: testCard.id,
+        playerId: testPlayers[0].id,
+        gameStateId: gameState.id,
+        lobbyId: testLobby.id,
+      });
+
+      clientSocket.on('GameEnded', (payload) => {
+        expect(checkLobbyWinnerMock).toHaveBeenCalled();
+        expect(payload).toBeDefined();
+        expect(payload.id).toBe(testPlayers[0].id);
+        done();
+      });
+
+      matchCardsCommand.execute();
+    });
+
     test('should match two of the players card and dispose them', (done) => {
       const card1 = new Card(2);
       const card2 = new Card(2);
