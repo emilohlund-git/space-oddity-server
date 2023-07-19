@@ -1,10 +1,10 @@
-FROM node:18-alpine AS build_image
+FROM node:20-alpine AS build_image
 WORKDIR /app
 COPY . .
 RUN npm ci
 RUN npm run build
 
-FROM node:18-alpine AS final
+FROM node:20-alpine AS final
 WORKDIR /app
 COPY --from=build_image ./app/dist ./dist
 COPY package*.json .
