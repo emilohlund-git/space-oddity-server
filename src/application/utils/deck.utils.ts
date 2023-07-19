@@ -20,11 +20,13 @@ export const createCard = (value: number): Card => {
 export const getShuffledDeck = (): Deck => {
   const cards = <Card[]>[];
 
-  for (let value = 1; value <= 20; value++) {
+  for (let value = 1; value <= 25; value++) {
     const card = createCard(value);
     cards.push(card);
 
-    if (value !== 19) {
+    if (value !== 19 &&
+      (card instanceof TwistedCard === false ||
+        card instanceof BlackHoleCard === false)) {
       cards.push(card.clone());
     }
   }
