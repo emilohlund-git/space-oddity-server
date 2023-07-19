@@ -28,9 +28,15 @@ class RetrieveGameStateCommand extends Command {
 
     const gameStateExists = this.gameService.getGameState(gameStateId);
     if (gameStateExists) {
+      const lobby = gameStateExists.lobby;
+      this.entityValidator.validateLobbyExists(lobby);
+
+      const player = lobby.getPlayers().find((p) => p.id === reconnectingPlayer.id);
+      this.entityValidator.validatePlayerExists(player);
+
       this.socket.emit('GameStateRetrieved', {
         gameState: gameStateExists,
-        player: gameStateExists.lobby!.getPlayers().find((p) => p.id === reconnectingPlayer.id)!,
+        player,
       });
       return;
     }

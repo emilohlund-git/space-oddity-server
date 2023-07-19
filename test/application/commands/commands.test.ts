@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import { UUID, randomUUID } from 'crypto';
 import dotenv from 'dotenv';
 import { Server as HttpServer, createServer } from 'http';
@@ -12,6 +11,7 @@ import JoinLobbyCommand from '../../../src/application/commands/join-lobby.comma
 import LeaveLobbyCommand from '../../../src/application/commands/leave-lobby.command';
 import MatchCardsCommand from '../../../src/application/commands/match-cards.command';
 import PickedCardCommand from '../../../src/application/commands/picked-card.command';
+import PingCommand from '../../../src/application/commands/ping.command';
 import PlayedCardCommand from '../../../src/application/commands/played-card.command';
 import RetrieveGameStateCommand from '../../../src/application/commands/retrieve-game-state.command';
 import SaveGameStateCommand from '../../../src/application/commands/save-game-state.command';
@@ -1148,7 +1148,7 @@ describe('Commands', () => {
       const retrieveGameStateCommand = new RetrieveGameStateCommand(gameService, io, serverSocket, {
         gameStateId: gameState.id,
         reconnectingPlayer: {
-          id: randomUUID(),
+          id: testPlayers[0].id,
           username: 'Player1',
         },
       });
@@ -1376,6 +1376,18 @@ describe('Commands', () => {
         });
         userReadyCommand.execute();
       }).toThrow(LobbyNotFoundException);
+      done();
+    });
+  });
+
+  describe('PingCommand', () => {
+    test('should emit pong', (done) => {
+      const pingCommand = new PingCommand(gameService, io, serverSocket, {});
+      const mockPingCommand = jest.spyOn(pingCommand, 'execute');
+
+      pingCommand.execute();
+
+      expect(mockPingCommand).toHaveBeenCalled();
       done();
     });
   });

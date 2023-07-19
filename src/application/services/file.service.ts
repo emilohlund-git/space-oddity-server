@@ -3,6 +3,9 @@ import { default as f } from 'fs';
 import fs from 'fs/promises';
 import { CardType } from '../../domain/entities/Card';
 import GameState, { GameStatus, Lights } from '../../domain/entities/GameState';
+import FailedToRemoveGameStateException from '../exceptions/failed-to-remove-game-state.exception';
+import FailedToRetrieveGameStateException from '../exceptions/failed-to-retrieve-game-state.exception';
+import FailedToSaveGameStateException from '../exceptions/failed-to-save-game-state.exception';
 
 export interface HandJson {
   cards: CardJson[];
@@ -63,9 +66,8 @@ export class FileService {
     if (f.existsSync(`${folderPath}/${gameState.id}.json`)) {
       try {
         await fs.rm(`${folderPath}/${gameState.id}.json`);
-        return await Promise.resolve();
       } catch (error) {
-        return Promise.reject(error);
+        throw new FailedToRemoveGameStateException(error as string);
       }
     }
   }
@@ -77,7 +79,7 @@ export class FileService {
       await fs.writeFile(`./states/${gameState.id}.json`, JSON.stringify(gameState));
       return await Promise.resolve(true);
     } catch (error) {
-      return Promise.reject(error);
+      throw new FailedToSaveGameStateException(error as string);
     }
   }
 
@@ -89,7 +91,7 @@ export class FileService {
         const gameStateJson: GameStateJson = JSON.parse(result.toString());
         return await Promise.resolve(gameStateJson);
       } catch (error) {
-        return Promise.reject(error);
+        throw new FailedToRetrieveGameStateException(error as string);
       }
     }
   }

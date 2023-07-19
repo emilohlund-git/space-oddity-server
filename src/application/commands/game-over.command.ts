@@ -38,9 +38,7 @@ class GameOverCommand extends Command {
       gameState.endGame();
     }
 
-    this.io.to(lobbyId).emit('GameEnded', {
-      winner: gameState.getPlayerWithLeastAmountOfCards(),
-    });
+    this.io.to(lobbyId).emit('GameEnded', gameState.getPlayerWithLeastAmountOfCards());
   }
 }
 

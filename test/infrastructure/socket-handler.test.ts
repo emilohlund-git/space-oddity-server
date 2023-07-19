@@ -71,6 +71,7 @@ describe('SocketHandler', () => {
         MatchCards: (socket, payload) => new mockCommandClass(socket, payload),
         SaveGameState: (socket, payload) => new mockCommandClass(socket, payload),
         RetrieveGameState: (socket, payload) => new mockCommandClass(socket, payload),
+        Ping: (socket, payload) => new mockCommandClass(socket, payload),
       });
 
       socketHandler.handleConnection();
@@ -113,6 +114,7 @@ describe('SocketHandler', () => {
       expect(mockSocketOn).toHaveBeenCalledWith('MatchCards', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('SaveGameState', expect.any(Function));
       expect(mockSocketOn).toHaveBeenCalledWith('RetrieveGameState', expect.any(Function));
+      expect(mockSocketOn).toHaveBeenCalledWith('Ping', expect.any(Function));
 
       done();
     });

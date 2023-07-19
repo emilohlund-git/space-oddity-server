@@ -1,31 +1,23 @@
 import type { Server, Socket } from 'socket.io';
-import GameState from '../../domain/entities/GameState';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
-import { FileService } from '../services/file.service';
 import GameService from '../services/game.service';
 import { EntityValidator } from '../utils/entity.validator';
 
-export type SaveGameStatePayload = {
-  gameState: GameState;
-};
+export type PingPayload = {};
 
-class SaveGameStateCommand extends Command {
+class PingCommand extends Command {
   constructor(
     private readonly gameService: GameService,
     private readonly io: Server,
     private readonly socket: Socket<ClientEvents, ServerEvents>,
-    private readonly payload: SaveGameStatePayload,
+    private readonly payload: PingPayload,
   ) {
     super(payload, new EntityValidator());
   }
 
-  async execute(): Promise<void> {
-    const { gameState } = this.payload;
-
-    await FileService.storeGameState(gameState);
-
-    this.socket.emit('GameStateSaved');
+  execute(): void {
+    this.socket.emit('Pong');
   }
 }
 
-export default SaveGameStateCommand;
+export default PingCommand;
