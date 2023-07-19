@@ -3,15 +3,21 @@ import Card, { CardType } from '../../domain/entities/Card';
 import Deck from '../../domain/entities/Deck';
 import TwistedCard, { SpecialEffect } from '../../domain/entities/TwistedCard';
 
+export enum TwistedCardDescription {
+  SwitchLight = 'Play this card to change the light color.',
+  SwapHand = 'Play this card and choose an opponent to swap hands with.',
+  SneakAPeak = 'Play this card and choose an opponent to spy on and pick a card from their hand.',
+}
+
 export const createCard = (value: number): Card => {
   if (value === 21 || value === 22) {
     return new BlackHoleCard(value);
   } else if (value === 23) {
-    return new TwistedCard(value, SpecialEffect.SwitchLight, 'Play this card to change the light color.');
+    return new TwistedCard(value, SpecialEffect.SwitchLight, TwistedCardDescription.SwitchLight);
   } else if (value === 24) {
-    return new TwistedCard(value, SpecialEffect.SwapHand, 'Play this card and choose an opponent to swap hands with.');
+    return new TwistedCard(value, SpecialEffect.SwapHand, TwistedCardDescription.SwapHand);
   } else if (value === 25) {
-    return new TwistedCard(value, SpecialEffect.SneakAPeak, 'Play this card and choose an opponent to spy on and pick a card from their hand.');
+    return new TwistedCard(value, SpecialEffect.SneakAPeak, TwistedCardDescription.SneakAPeak);
   } else {
     return new Card(value);
   }

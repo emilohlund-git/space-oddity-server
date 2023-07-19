@@ -5,6 +5,7 @@ import DeckNotFoundException from '../../src/application/exceptions/deck-not-fou
 import InsufficientCardsException from '../../src/application/exceptions/insufficient-cards.exception';
 import LobbyNotFoundException from '../../src/application/exceptions/lobby-not-found.exception';
 import NoPlayersInGameException from '../../src/application/exceptions/no-players-in-game.exception';
+import { TwistedCardDescription } from '../../src/application/utils/deck.utils';
 import BlackHoleCard from '../../src/domain/entities/BlackHoleCard';
 import Card, { CardType, cardGraphicMapping } from '../../src/domain/entities/Card';
 import Deck from '../../src/domain/entities/Deck';
@@ -142,6 +143,11 @@ describe('Entities', () => {
 
       expect(sneakPeakCard!.getSpecialEffect()).toBe(SpecialEffect.SneakAPeak);
       done();
+    });
+
+    test('should return a TwistedCards description', () => {
+      const card = new TwistedCard(24, SpecialEffect.SwitchLight, TwistedCardDescription.SwitchLight);
+      expect(card.getDescription()).toBe(TwistedCardDescription.SwitchLight);
     });
   });
 
