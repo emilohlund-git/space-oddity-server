@@ -58,6 +58,12 @@ class PlayedCardCommand extends Command {
     }
 
     this.io.to(lobbyId).emit('PlayedCard', gameState);
+
+    const winner = gameState.checkLobbyWinner();
+
+    if (winner) {
+      this.io.to(lobbyId).emit('GameEnded', winner);
+    }
   }
 }
 

@@ -105,6 +105,14 @@ class GameState {
     return this.lobby.getPlayers()[this.currentPlayerIndex];
   }
 
+  public checkLobbyWinner(): Player | undefined {
+    const playerWithLeastCards = this.getPlayerWithLeastAmountOfCards();
+
+    if (playerWithLeastCards.getHand().getCards().length === 0) {
+      return playerWithLeastCards;
+    }
+  }
+
   public isGameOver(): boolean {
     if (!this.lobby) {
       throw new LobbyNotFoundException('Lobby does not exist for GameState');
