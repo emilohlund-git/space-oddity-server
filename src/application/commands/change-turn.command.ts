@@ -34,10 +34,6 @@ class ChangeTurnCommand extends Command {
 
     gameState.nextTurn();
 
-    if (gameState.lobby) {
-      gameState.lobby.lastActivityTime = Date.now();
-    }
-
     this.io.to(lobbyId).emit('ChangeTurn', gameState);
   }
 }

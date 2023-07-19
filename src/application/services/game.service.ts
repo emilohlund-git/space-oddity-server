@@ -120,6 +120,8 @@ class GameService {
       // Set the parsed gameState in gameStates map
       gameState.setLobby(lobbyEntity);
       gameState.setTable(tableEntity);
+      // Just to make sure the current player gets set properly
+      gameState.currentPlayerIndex = json.currentPlayerIndex;
       this.setGameState(gameState);
 
       if (gameState) {
