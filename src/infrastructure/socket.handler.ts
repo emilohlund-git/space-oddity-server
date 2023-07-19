@@ -114,7 +114,7 @@ class SocketHandler {
   }
 
   public handleSocketError(error: any, socket: Socket): void {
-    logger.error(`Socket error occurred: ${error.message}`);
+    logger.error(`⚠️ Socket error occurred: ${error.message}`);
     socket.emit('error', error.message);
   }
 }

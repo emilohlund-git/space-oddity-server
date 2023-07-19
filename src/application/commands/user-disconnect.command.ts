@@ -39,8 +39,6 @@ class UserDisconnectCommand extends Command {
       }
     }
 
-    this.gameService.getUserService().remove(user.id);
-
     this.io.to(this.socket.id).emit('UserDisconnected', user);
 
     return user;

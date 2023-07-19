@@ -1,5 +1,4 @@
 import type { Server, Socket } from 'socket.io';
-import { logger } from '../../configurations/logger.config';
 import GameState from '../../domain/entities/GameState';
 import { ClientEvents, Command, ServerEvents } from '../../domain/interfaces/command.interface';
 import { FileService } from '../services/file.service';
@@ -23,10 +22,7 @@ class SaveGameStateCommand extends Command {
   async execute(): Promise<void> {
     const { gameState } = this.payload;
 
-    const res = await FileService.storeGameState(gameState);
-    if (res) {
-      logger.info('Saved GameState succesfully!');
-    }
+    await FileService.storeGameState(gameState);
 
     this.socket.emit('GameStateSaved');
   }

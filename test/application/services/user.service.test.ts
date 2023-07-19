@@ -14,6 +14,20 @@ describe('UserService', () => {
     userService = new UserService(userRepository);
   });
 
+  describe('remove', () => {
+    test('should remove a player', () => {
+      const player1 = new Player('Player1', new Hand(), randomUUID());
+
+      userService.save(player1);
+
+      expect(userService.findAll()).toHaveLength(1);
+
+      userService.remove(player1.id);
+
+      expect(userService.findAll()).toHaveLength(0);
+    });
+  });
+
   describe('removeMany', () => {
     test('should remove several players at once', () => {
       const player1 = new Player('Player1', new Hand(), randomUUID());

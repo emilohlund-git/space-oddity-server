@@ -11,6 +11,18 @@ describe('UserRepository', () => {
     userRepository = new InMemoryUserRepository();
   });
 
+  test('should remove a player', () => {
+    const player1 = new Player('Player1', new Hand(), randomUUID());
+
+    userRepository.save(player1);
+
+    expect(userRepository.findAll()).toHaveLength(1);
+
+    userRepository.remove(player1.id);
+
+    expect(userRepository.findAll()).toHaveLength(0);
+  });
+
   test('should remove several players at once', () => {
     const player1 = new Player('Player1', new Hand(), randomUUID());
     const player2 = new Player('Player2', new Hand(), randomUUID());

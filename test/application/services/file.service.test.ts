@@ -1,5 +1,7 @@
 import { default as f } from 'fs';
 import fs from 'fs/promises';
+import FailedToRemoveGameStateException from '../../../src/application/exceptions/failed-to-remove-game-state.exception';
+import FailedToSaveGameStateException from '../../../src/application/exceptions/failed-to-save-game-state.exception';
 import { FileService } from '../../../src/application/services/file.service';
 import GameState from '../../../src/domain/entities/GameState';
 import Table from '../../../src/domain/entities/Table';
@@ -14,7 +16,7 @@ describe('FileService', () => {
       jest.spyOn(f, 'existsSync').mockReturnValue(true);
       jest.spyOn(fs, 'rm').mockRejectedValue(new Error('File removal error'));
 
-      await expect(FileService.removeSavedState(gameState)).rejects.toThrow(Error);
+      await expect(FileService.removeSavedState(gameState)).rejects.toThrow(FailedToRemoveGameStateException);
 
       expect(fs.rm).toHaveBeenCalledWith(`./states/${gameState.id}.json`);
     });
@@ -46,12 +48,13 @@ describe('FileService', () => {
       const gameState = new GameState(new Table());
 
       const mockMkdir = jest.spyOn(fs, 'mkdir');
-      mockMkdir.mockRejectedValueOnce(new Error('Test'));
+      mockMkdir.mockResolvedValueOnce(Promise.reject());
 
       const mockWriteFile = jest.spyOn(fs, 'writeFile');
       mockWriteFile.mockResolvedValue(undefined);
 
-      await expect(FileService.storeGameState(gameState)).rejects.toThrowError('Test');
+      await expect(FileService.storeGameState(gameState)).rejects.toThrowError(FailedToSaveGameStateException);
+
 
       expect(mockMkdir).toHaveBeenCalledWith('./states', { recursive: true });
 
